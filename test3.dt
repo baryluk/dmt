@@ -1,0 +1,17 @@
+import std.stdio
+
+class A:
+	public:
+	int f
+	def this():
+		f = 4
+		writefln("Contructor")
+	def ~this():
+		writefln("Decontructor")
+	def void times(int k):
+		writefln(k*f)
+
+def int main(char[][] args):
+	A a = new A()
+	a.times(10)
+	return 0

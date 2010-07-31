@@ -1,0 +1,35 @@
+import std.stdio
+
+def int main(char[][] args):
+	writefln("%s", args[0])
+	int a
+	a = 5
+	writefln("%d", a)
+	if (a > 6):
+		a += 5
+	else:  
+		a -= 1
+		a = a * 3
+	writefln("%d", a)
+	if (a > 8):
+		if (a > 16):
+			writefln("a olbrzymie")
+		else:
+			writefln("a srednie")
+
+	else:
+	  writefln("a male")
+
+	int i = 2
+
+	switch (i):
+		case 1:
+			writefln("zosia"); break;
+		case 2:
+			writefln("kasia"); break;
+		case 7:
+			writefln("gosia"); break;
+		default:
+			writefln("ala"); break;
+
+	return 0
