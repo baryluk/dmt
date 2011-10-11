@@ -3,4 +3,4 @@ import std.stdio
 def void main():
 	int i = 6
 	auto j = 3*i
-	writefln(j)
+	writefln("%d", j)

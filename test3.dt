@@ -9,7 +9,7 @@ class A:
 	def ~this():
 		writefln("Decontructor")
 	def void times(int k):
-		writefln(k*f)
+		writefln("%d", k*f)
 
 def int main(char[][] args):
 	A a = new A()

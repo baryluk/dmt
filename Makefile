@@ -1,9 +1,13 @@
 .PHONY: all
 all: dmt
 
+DMD ?= dmd
+DMDFLAGS = -release -inline -O
+#DMDFLAGS = -cov -unittest -release -inline -O
+
 dmt: dmt.d
-#	dmd -cov -unittest -release -inline -O dmt.d
-	dmd -release -inline -O dmt.d
+	$(DMD) $(DMDFLAGS) dmt.d
+	strip ./dmt
 
 .PHONY: test
 test: dmt test1.dt test2.dt test3.dt

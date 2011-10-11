@@ -53,9 +53,10 @@ import std.stream;
 import std.ctype;
 import std.file;
 import std.process;
+import std.cstream;
 
 /** Check if small is on the begining of big */
-bool strcmp_first(char[] big, char[] small)
+bool strcmp_first(string big, string small)
 in {
 	assert(small.length > 0);
 }
@@ -81,7 +82,7 @@ unittest {
 
 /** Similar to strcmp_first2,
 	but after small cann't be digit, char, or underscore (_) */
-bool strcmp_first2(char[] big, char[] small)
+bool strcmp_first2(string big, string small)
 in {
 	assert(small.length > 0);
 }
@@ -118,7 +119,7 @@ unittest {
 
 /++
 /** Prints stack of indentations */
-void printstack(char[][] istack) {
+void printstack(string[] istack) {
 	writefln("Current istack:");
 	foreach (i, il; istack) {
 		writefln("il[%d]='%s' (len=%d)", i, il, il.length);
@@ -127,14 +128,14 @@ void printstack(char[][] istack) {
 ++/
 
 /** Table of D langugage keywords which can introduce new indentation level */
-char[][] canindent = ["if", "else", "for", "foreach", "foreach_reverse",
+string[] canindent = ["if", "else", "for", "foreach", "foreach_reverse",
 	"while", "try", "catch", "def", "switch", "case", "version", "finally",
 	"body", "in", "out", "invariant", "class", "struct", "template",
 	"default", "do", "unittest", "enum", "union"];
 
 /** Decompose line into whitespace prefix (indent), body, and postfix
  * (with eventual comment, and \) */
-void decompose(char[] line, out char[] pre, out char[] bdy, out char[] post) {
+void decompose(string line, out string pre, out string bdy, out string post) {
 	int i0; // index of first non white char
 	int i1; // index of last non whie char
 
@@ -154,7 +155,7 @@ void decompose(char[] line, out char[] pre, out char[] bdy, out char[] post) {
 //	writefln("pre='%s',bdy='%s',post='%s'", pre, bdy, post);
 }
 unittest {
-	char[] a,b,c;
+	string a,b,c;
 	decompose("",a,b,c);
 	assert(a == "" && b == "" && c == "");
 	decompose(" ",a,b,c);
@@ -175,7 +176,7 @@ unittest {
 	assert(a == "  " && b == "df" && c == " ");
 }
 
-void writetimes(OutputStream output, char[] s, int times)
+void writetimes(OutputStream output, string s, int times)
 in {
 	assert(times >= 0);
 	assert(s.length > 0);
@@ -187,21 +188,21 @@ body {
 
 /** Convert supplied file from Python-like ident style to clasic D source 
  *  with curly brackets. */
-bool Convert(char[] filename, char[] tempfilename) {
-	auto Stream file = new BufferedFile(filename, FileMode.In);
-	auto Stream tempfile = new BufferedFile(tempfilename, FileMode.Out);
+bool Convert(string filename, string tempfilename) {
+	auto file = new BufferedFile(filename, FileMode.In);
+	auto tempfile = new BufferedFile(tempfilename, FileMode.Out);
 
-	const char[] tab = "   ";
+	const string tab = "   ";
 
 	// Indentation stack
-	char[][] istack;
+	string[] istack;
 
 	// will be identation be needed on next line?
 	bool indent_need = false;
 	bool waiting_for_else = false;
 
-	bool processline(char[] line) {
-		char[] m[3];
+	bool processline(string line) {
+		string m[3];
 		decompose(line,m[0],m[1],m[2]);
 		if (m[1] != "") {
 //			writefln("Input:%s", line);
@@ -209,7 +210,7 @@ bool Convert(char[] filename, char[] tempfilename) {
 //			writefln("m2:'%s'", m[1]);
 //			writefln("m3:'%s'", m[2]);
 //			printstack(istack);
-			char[] indent = m[0];
+			string indent = m[0];
 
 			size_t i = 0;
 			size_t last_il_lvl = 0;
@@ -250,7 +251,7 @@ bool Convert(char[] filename, char[] tempfilename) {
 //						indent[i..$], indent[i..$].length);
 					if (indent_need) {
 //						writefln("allowed");
-						istack ~= indent[i..$].dup;
+						istack ~= indent[i..$].idup;
 					} else {
 						writefln("Unallowed indetation");
 						return false;
@@ -310,8 +311,10 @@ bool Convert(char[] filename, char[] tempfilename) {
 		return true;
 	}
 
-	foreach(char[] line; file) {
-		if (processline(line) == false)
+	/// TODO: this should be ref string line, with no casts, see bug
+	foreach(ref char[] line; file) {
+		/// FIXME: This just hack with cast
+		if (processline(cast(string)line) == false)
 			return false;
 	}
 
@@ -325,7 +328,7 @@ bool Convert(char[] filename, char[] tempfilename) {
 	return true;
 }
 
-int main(char[][] args) {
+int main(string[] args) {
 	if (args.length == 1) {
 		writef("D Indentation Converter v1.0\n"
 			"Copyright (c) 2006 Witold Baryluk <baryluk@smp.if.uj.edu.pl>\n"
@@ -342,12 +345,12 @@ int main(char[][] args) {
 			writefln("Unknown file type: %s", filename);
 			return 1;
 		}
-		char[] basename = filename[0..$-3];
+		string basename = filename[0..$-3];
 		if (basename.length == 0) {
 			writefln("Empty basename");
 			return 1;
 		}
-		char[] tempfilename = basename~".d";
+		string tempfilename = basename~".d";
 		if (exists(tempfilename)) {
 			writefln("Temporary file exists, aborting.");
 			return 1;			
@@ -358,7 +361,10 @@ int main(char[][] args) {
 			}
 			return 1;
 		}
-		int ret = system("dmd "~tempfilename);
+		string DMD = environment.get("DMD", "dmd");
+		string c = DMD ~ " " ~ tempfilename;
+		derr.writeLine(c);
+		int ret = system(c);
 		std.file.remove(tempfilename);
 		if (ret != 0) {
 			return ret;
