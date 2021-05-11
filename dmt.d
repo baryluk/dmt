@@ -1,7 +1,7 @@
 /* Python-like indentation for Digital Mars D
- * Version: 1.0
- * Author: Witold Baryluk <baryluk@smp.if.uj.edu.pl>
- * Copyright 2006
+ * Version: 1.1
+ * Author: Witold Baryluk <witold.baryluk@gmail.com>
+ * Copyright 2006, 2011, 2021
  * Licence: BSD
  * ---
  * This package may be redistributed under the terms of the UCB BSD
@@ -49,11 +49,9 @@
 module dmt;
 
 import std.stdio;
-import std.stream;
-import std.ctype;
+import core.stdc.ctype;
 import std.file;
 import std.process;
-import std.cstream;
 
 /** Check if small is on the begining of big */
 bool strcmp_first(string big, string small)
@@ -136,8 +134,8 @@ string[] canindent = ["if", "else", "for", "foreach", "foreach_reverse",
 /** Decompose line into whitespace prefix (indent), body, and postfix
  * (with eventual comment, and \) */
 void decompose(string line, out string pre, out string bdy, out string post) {
-	int i0; // index of first non white char
-	int i1; // index of last non whie char
+	size_t i0; // index of first non white char
+	size_t i1; // index of last non whie char
 
 	for (i0 = 0; i0 < line.length; i0++)
 		if (!isspace(line[i0])) break;
@@ -176,21 +174,21 @@ unittest {
 	assert(a == "  " && b == "df" && c == " ");
 }
 
-void writetimes(OutputStream output, string s, int times)
+void writetimes(OutputStream)(OutputStream output, string s, size_t times)
 in {
 	assert(times >= 0);
 	assert(s.length > 0);
 }
 body {
-	for (int i = 0; i < times; i++)
+	for (size_t i = 0; i < times; i++)
 		output.writef("%s", s);
 }
 
 /** Convert supplied file from Python-like ident style to clasic D source 
  *  with curly brackets. */
 bool Convert(string filename, string tempfilename) {
-	auto file = new BufferedFile(filename, FileMode.In);
-	auto tempfile = new BufferedFile(tempfilename, FileMode.Out);
+	auto file = File(filename, "r");
+	auto tempfile = File(tempfilename, "w");
 
 	const string tab = "   ";
 
@@ -202,7 +200,7 @@ bool Convert(string filename, string tempfilename) {
 	bool waiting_for_else = false;
 
 	bool processline(string line) {
-		string m[3];
+		string[3] m;
 		decompose(line,m[0],m[1],m[2]);
 		if (m[1] != "") {
 //			writefln("Input:%s", line);
@@ -280,12 +278,12 @@ bool Convert(string filename, string tempfilename) {
 						m[1] = m[1][1..$];
 					}
 					if (strcmp_first2(m[1], "case") || strcmp_first2(m[1], "default")) {
-						if (waiting_for_else) tempfile.writefln();
+						if (waiting_for_else) tempfile.writeln();
 						writetimes(tempfile, tab, istack.length);
 						tempfile.writefln("%s {", m[1][0..$]);
 					} else {
 						if (!strcmp_first2(m[1], "else")) {
-							if (waiting_for_else) tempfile.writefln();
+							if (waiting_for_else) tempfile.writeln();
 							writetimes(tempfile, tab, istack.length);
 						} else {
 							tempfile.writef(" ");
@@ -297,7 +295,7 @@ bool Convert(string filename, string tempfilename) {
 			}
 			if (!indent_need) {
 //				writefln("no");
-				if (waiting_for_else) tempfile.writefln();
+				if (waiting_for_else) tempfile.writeln();
 				writetimes(tempfile, tab, istack.length);
 				tempfile.writefln("%s;",m[1]);
 			}
@@ -306,13 +304,12 @@ bool Convert(string filename, string tempfilename) {
 		} else {
 //			writefln("IgnoringInput (blank line):%s", line);
 //			tempfile.writefln();
-			;
+
 		}
 		return true;
 	}
 
-	/// TODO: this should be ref string line, with no casts, see bug
-	foreach(ref char[] line; file) {
+	foreach(ref line; file.byLine) {
 		/// FIXME: This just hack with cast
 		if (processline(cast(string)line) == false)
 			return false;
@@ -330,10 +327,10 @@ bool Convert(string filename, string tempfilename) {
 
 int main(string[] args) {
 	if (args.length == 1) {
-		writef("D Indentation Converter v1.0\n"
-			"Copyright (c) 2006 Witold Baryluk <baryluk@smp.if.uj.edu.pl>\n"
-			"Usage:\n"
-			"\t%s files.dt...\n", args[0]
+		writef("D Indentation Converter v1.1\n"
+			~ "Copyright (c) 2006, 2011, 2021, Witold Baryluk <witold.baryluk@gmail.com>\n"
+			~ "Usage:\n"
+			~ "\t%s files.dt...\n", args[0]
 		);
 		
 		return 1;
@@ -363,8 +360,12 @@ int main(string[] args) {
 		}
 		string DMD = environment.get("DMD", "dmd");
 		string c = DMD ~ " " ~ tempfilename;
-		derr.writeLine(c);
-		int ret = system(c);
+		stderr.writeln(c);
+
+		import core.stdc.stdlib : system;
+		import std.string : toStringz;
+
+		int ret = system(c.toStringz);  // TODO(baryluk): Use std.process.spawnShell instead.
 		std.file.remove(tempfilename);
 		if (ret != 0) {
 			return ret;
