@@ -49,43 +49,32 @@
 module dmt;
 
 import std.stdio;
-import core.stdc.ctype;
-import std.file;
-import std.process;
 
-/** Check if small is on the begining of big */
-bool strcmp_first(string big, string small)
-in {
-	assert(small.length > 0);
-}
-body {
-	size_t l = small.length;
-	if (l > big.length)
-		return false;
-	if (big[0..l] == small)
-		return true;
-	return false;
-}
-unittest {
-	assert(strcmp_first("abcdef", "abc") == true);
-	assert(strcmp_first(" sda", "sd") == false);
-	assert(strcmp_first(" \tabc", " abc") == false);
-	assert(strcmp_first(" abc", " \tab") == false);
-	assert(strcmp_first("babc", "bab") == true);
-	assert(strcmp_first("babc", "ban") == false);
-	assert(strcmp_first("  abcdef", " abc") == false);
-	assert(strcmp_first("babc", "banca") == false);
-	assert(strcmp_first("babc", "vagcaa") == false);
-}
-
-/** Similar to strcmp_first2,
-	but after small cann't be digit, char, or underscore (_) */
+/** Check if 'small' is at the start of 'big', and that
+ * after small there is no alphanumeric character or underscore (_).
+ *
+ *
+ * Basically it checks if the first "word" of the 'big' is
+ * same as 'small'. It is somehow similar to a regular expression
+ * pattern ending with \b.
+ *
+ *  For example:
+ *
+ *    strcmp_first2("abc", "abc") is true.
+ *    strcmp_first2("abc def", "abc") is true.
+ *    strcmp_first2("abc(def", "abc") is true.
+ *
+ *    strcmp_first2("abc3def", "abc") is false.
+ */
 bool strcmp_first2(string big, string small)
 in {
 	assert(small.length > 0);
 }
 body {
-	if (strcmp_first(big, small) == false) {
+	import std.string : startsWith;
+	import core.stdc.ctype : isalnum;
+
+	if (big.startsWith(small) == false) {
 		return false;
 	} else {
 		size_t l = small.length;
@@ -115,68 +104,94 @@ unittest {
 	assert(strcmp_first2("nab", "ab") == false);
 }
 
-/++
-/** Prints stack of indentations */
-void printstack(string[] istack) {
-	writefln("Current istack:");
-	foreach (i, il; istack) {
-		writefln("il[%d]='%s' (len=%d)", i, il, il.length);
-	}
-}
-++/
-
-/** Table of D langugage keywords which can introduce new indentation level */
-string[] canindent = ["if", "else", "for", "foreach", "foreach_reverse",
-	"while", "try", "catch", "def", "switch", "case", "version", "finally",
-	"body", "in", "out", "invariant", "class", "struct", "template",
-	"default", "do", "unittest", "enum", "union"];
-
 /** Decompose line into whitespace prefix (indent), body, and postfix
  * (with eventual comment, and \) */
 void decompose(string line, out string pre, out string bdy, out string post) {
-	size_t i0; // index of first non white char
-	size_t i1; // index of last non whie char
+	import core.stdc.ctype : isspace;
 
-	for (i0 = 0; i0 < line.length; i0++)
+	size_t i0;  // index of first non white char
+	size_t i1;  // index of last non whie char
+
+	for (i0 = 0; i0 < line.length; i0++) {
 		if (!isspace(line[i0])) break;
+	}
 	if (i0 < line.length) {
-		for (i1 = line.length-1; i1 >= i0 && i1 >= 0; i1--)
+		for (i1 = line.length-1; i1 >= i0 && i1 >= 0; i1--) {
 			if (!isspace(line[i1])) break;
+		}
 		i1++;
 	} else {
 		i1 = line.length;
 	}
-//	writefln("%d-%d-%d-%d", 0,i0,i1,line.length);
+	debug(dmt) writefln("%d-%d-%d-%d", 0, i0, i1, line.length);
 	pre = line[0..i0];
 	bdy = line[i0..i1];
 	post = line[i1..$];
-//	writefln("pre='%s',bdy='%s',post='%s'", pre, bdy, post);
+	debug(dmt) writefln("pre='%s',bdy='%s',post='%s'", pre, bdy, post);
 }
 unittest {
-	string a,b,c;
-	decompose("",a,b,c);
+	string a, b, c;
+	decompose("", a, b, c);
 	assert(a == "" && b == "" && c == "");
-	decompose(" ",a,b,c);
+	decompose(" ", a, b, c);
 	assert(a == " " && b == "" && c == "");
-	decompose("d",a,b,c);
+	decompose("d", a, b, c);
 	assert(a == "" && b == "d" && c == "");
-	decompose("ad",a,b,c);
+	decompose("ad", a, b, c);
 	assert(a == "" && b == "ad" && c == "");
-	decompose(" d",a,b,c);
+	decompose(" d", a, b, c);
 	assert(a == " " && b == "d" && c == "");
-	decompose("d ",a,b,c);
+	decompose("d ", a, b, c);
 	assert(a == "" && b == "d" && c == " ");
-	decompose(" d ",a,b,c);
+	decompose(" d ", a, b, c);
 	assert(a == " " && b == "d" && c == " ");
-	decompose("  d ",a,b,c);
+	decompose("  d ", a, b, c);
 	assert(a == "  " && b == "d" && c == " ");
-	decompose("  df ",a,b,c);
+	decompose("  df ", a, b, c);
 	assert(a == "  " && b == "df" && c == " ");
 }
 
+/** Table of D langugage keywords which can introduce new indentation level */
+immutable string[] can_indent = [
+	"if", "else", "for", "foreach", "foreach_reverse",
+	"while", "try", "catch", "def", "switch", "case", "version", "finally",
+	"body", "in", "out", "invariant", "class", "struct", "template",
+	"default", "do", "unittest", "enum", "union",
+];
+
+/** Check if m1 introduces a new indentation level, if so return the keyword
+ * name of the keybord responsible.
+ *
+ * `def` and `case` keywords for example can have slightly different semantic.
+ *
+ * `m1` should already have leading and trailing whitespaces removed,
+ * as computed in `bdy` output argument of `decompose` function.
+ */
+string check_if_can_indent(string m1)
+in {
+	assert(m1.length > 0);
+}
+body {
+	foreach (ci; can_indent) {
+		if (strcmp_first2(m1, ci) == true && m1[$-1] == ':') {
+			return ci;
+		}
+	}
+	return null;
+}
+unittest {
+	assert(check_if_can_indent("def void ala():") == "def");
+	assert(check_if_can_indent("enum E:") == "enum");
+	assert(check_if_can_indent("class C(string s, T) if (s.length > 5):") == "class");
+	assert(check_if_can_indent("if (x > f(x)):") == "if");
+	assert(check_if_can_indent("else:") == "else");
+	assert(check_if_can_indent("import std.stdio") is null);
+	assert(check_if_can_indent("int a = 5") is null);
+}
+
+/** Repeats string 's' 'times' time on the output 'output'. */
 void writetimes(OutputStream)(OutputStream output, string s, size_t times)
 in {
-	assert(times >= 0);
 	assert(s.length > 0);
 }
 body {
@@ -184,9 +199,26 @@ body {
 		output.writef("%s", s);
 }
 
+debug(dmt) {
+/** Prints stack of indentations */
+void printstack(string[] istack) {
+	writefln("Current istack:");
+	foreach (i, il; istack) {
+		writefln("il[%d]='%s' (len=%d)", i, il, il.length);
+	}
+}
+}
+
 /** Convert supplied file from Python-like ident style to clasic D source 
- *  with curly brackets. */
-bool Convert(string filename, string tempfilename) {
+ *  with curly brackets.
+ *
+ * Returns false on failure (i.e. mismatched indentations).
+ */
+bool convert(string filename, string tempfilename) {
+	import std.stdio;
+	import std.string : startsWith;
+	import core.stdc.ctype : isspace;
+
 	auto file = File(filename, "r");
 	auto tempfile = File(tempfilename, "w");
 
@@ -195,128 +227,144 @@ bool Convert(string filename, string tempfilename) {
 	// Indentation stack
 	string[] istack;
 
-	// will be identation be needed on next line?
+	// Will identation be needed on next line?
 	bool indent_need = false;
 	bool waiting_for_else = false;
 
 	bool processline(string line) {
-		string[3] m;
-		decompose(line,m[0],m[1],m[2]);
-		if (m[1] != "") {
-//			writefln("Input:%s", line);
-//			writefln("m1:'%s' (len=%d)", m[0], m[0].length);
-//			writefln("m2:'%s'", m[1]);
-//			writefln("m3:'%s'", m[2]);
-//			printstack(istack);
-			string indent = m[0];
+		string pre, bdy, post;
+		decompose(line, pre, bdy, post);
+		if (bdy == "") {
+			debug(dmt) writefln("IgnoringInput (blank line):%s", line);
+			debug(dmt) tempfile.writefln();
+			return true;
+		}
 
-			size_t i = 0;
-			size_t last_il_lvl = 0;
-			foreach (il_lvl, il; istack) {
-				last_il_lvl = il_lvl+1;
-				if (indent[i..$].length > 0) {
-					if (strcmp_first(indent[i..$], il) == false) {
-						writefln("Indentation error");
-						return false;
-					} else {
-						i += il.length;
-					}
-				} else {
-					last_il_lvl--;
-//					writefln("Back to then last indent");
-					break;
-				}
-			}
+		debug assert(bdy != "");
 
-//			writefln("We were on %d level of indent", last_il_lvl);
-			size_t left = indent.length-i;
-			waiting_for_else = false;
-			if (last_il_lvl < istack.length) {
-				assert(left == 0);
-				for (size_t tempi=0; tempi < istack.length - last_il_lvl-1; tempi++) {
-					writetimes(tempfile, tab, istack.length-tempi-1);
-					tempfile.writefln("}");
+		debug(dmt) {
+			writefln("Input:%s", line);
+			writefln("pre:'%s' (len=%d)", pre, pre.length);
+			writefln("bdy:'%s'", bdy);
+			writefln("post:'%s'", post);
+			printstack(istack);
+		}
+		string indent = pre;
+
+
+		// TODO(baryluk): Move this to a separate helper function.
+		size_t i = 0;
+		size_t last_il_lvl = 0;
+		foreach (il_lvl, il; istack) {
+			last_il_lvl = il_lvl + 1;
+			if (indent[i..$].length > 0) {
+				if (indent[i..$].startsWith(il) == false) {
+					writefln("Indentation error");
+					return false;
 				}
-				if (last_il_lvl-1 >= 0) {
-					writetimes(tempfile, tab, last_il_lvl);
-					tempfile.writef("}");
-					waiting_for_else = true;
-				}
-				istack.length = last_il_lvl;
+				i += il.length;
 			} else {
-				if (left > 0 && m[1].length > 0) {
-//					writefln("New indent level: '%s' (len=%d)",
-//						indent[i..$], indent[i..$].length);
-					if (indent_need) {
-//						writefln("allowed");
-						istack ~= indent[i..$].idup;
-					} else {
-						writefln("Unallowed indetation");
-						return false;
-					}
-				} else {
-//					writefln("No additional indent or line is blank");
-					if (indent_need) {
-						writefln("Indetation expected");
-						return false;
-					}
-				}
+				last_il_lvl--;
+				debug(dmt) writefln("Back to the last indent");
+				break;
 			}
-//			printstack(istack);
+		}
 
-//			writef("Checking if it will be allowed on next line (m[1]='%s'): ", m[2]);
-			indent_need = false;
-			foreach (ci; canindent) {
-				if (strcmp_first2(m[1], ci) == true && m[1][$-1] == ':') {
-//					writefln("yes ('%s' keyword)", ci);
-					indent_need = true;
-					// Remove def from the begin
-					if (strcmp_first2(m[1], "def")) {
-						m[1] = m[1][3..$];
-					}
-					if (isspace(m[1][0])) {
-						m[1] = m[1][1..$];
-					}
-					if (strcmp_first2(m[1], "case") || strcmp_first2(m[1], "default")) {
-						if (waiting_for_else) tempfile.writeln();
-						writetimes(tempfile, tab, istack.length);
-						tempfile.writefln("%s {", m[1][0..$]);
-					} else {
-						if (!strcmp_first2(m[1], "else")) {
-							if (waiting_for_else) tempfile.writeln();
-							writetimes(tempfile, tab, istack.length);
-						} else {
-							tempfile.writef(" ");
-						}
-						tempfile.writefln("%s {", m[1][0..$-1]);
-					}
-					break;
+		debug(dmt) writefln("We were on %d level of indent", last_il_lvl);
+		size_t left = indent.length - i;
+		waiting_for_else = false;
+		if (last_il_lvl < istack.length) {
+			assert(left == 0);
+			for (size_t tempi = 0; tempi < istack.length - last_il_lvl - 1; tempi++) {
+				writetimes(tempfile, tab, istack.length - tempi - 1);
+				// Fake comment: { - to make my editor happier.
+				tempfile.writefln("}");
+			}
+			if (last_il_lvl - 1 >= 0) {
+				writetimes(tempfile, tab, last_il_lvl);
+				// Fake comment: { - to make my editor happier.
+				tempfile.writef("}");
+				waiting_for_else = true;
+			}
+			istack.length = last_il_lvl;
+		} else {
+			if (left > 0 && bdy.length > 0) {
+				debug(dmt) writefln("New indent level: '%s' (len=%d)",
+				    indent[i..$], indent[i..$].length);
+				if (!indent_need) {
+					writefln("Unallowed indentation");
+					return false;
+				}
+				debug(dmt) writefln("allowed");
+				istack ~= indent[i..$].idup;
+			} else {
+				debug(dmt) writefln("No additional indent or line is blank");
+				if (indent_need) {
+					writefln("Indentation expected");
+					return false;
 				}
 			}
-			if (!indent_need) {
-//				writefln("no");
+		}
+		debug(dmt) printstack(istack);
+
+		indent_need = false;
+
+		debug(dmt) writef("Checking if it will be allowed on a next line (bdy='%s'): ", bdy);
+		auto ci = check_if_can_indent(bdy);
+		if (ci) {
+			debug(dmt) writefln("yes ('%s' keyword)", ci);
+			indent_need = true;
+			// Remove def from the begin if any.
+			if (ci == "def") {
+				bdy = bdy[3..$];
+			}
+			if (bdy.length >= 1 && isspace(bdy[0])) {
+				bdy = bdy[1..$];
+			}
+			if (ci == "case" || ci == "default") {
 				if (waiting_for_else) tempfile.writeln();
 				writetimes(tempfile, tab, istack.length);
-				tempfile.writefln("%s;",m[1]);
+				// For case and default, both dmt and real-D, require actuall collon at the end.
+				// case 5:  -> case 5:
+				// default: -> default:
+				// However, we still add the {. This could be avoided, and enable few extra
+				// features, but I find them error-prone, and almost never used.
+				tempfile.writefln("%s {", bdy[0..$]);  // Fake comment: } - to make my editor happier.
+			} else {
+				if (ci != "else") {
+					if (waiting_for_else) tempfile.writeln();
+					writetimes(tempfile, tab, istack.length);
+				} else {
+					tempfile.writef(" ");
+				}
+				// For cases other than case and default, we need to strip the collon at the end.
+				// else: -> else {
+				// class A : B: -> class A : B {
+				tempfile.writefln("%s {", bdy[0..$-1]);  // Fake comment: } - to make my editor happier.
 			}
-
-//			writefln();
-		} else {
-//			writefln("IgnoringInput (blank line):%s", line);
-//			tempfile.writefln();
-
 		}
+		if (!indent_need) {
+			debug(dmt) writefln("no");
+			if (waiting_for_else) tempfile.writeln();
+			writetimes(tempfile, tab, istack.length);
+			// TODO(baryluk): Investigate possibility: Don't add ';', if there is already ';' at the end.
+			tempfile.writefln("%s;", bdy);
+		}
+
+		debug(dmt) writefln();
 		return true;
 	}
 
 	foreach(ref line; file.byLine) {
-		/// FIXME: This just hack with cast
+		// FIXME(baryluk): byLine returns char[], but we can safely cast it to
+		// a string, because we dont presist references to line after processing it.
 		if (processline(cast(string)line) == false)
 			return false;
 	}
 
-	for (size_t tempi=0; tempi < istack.length; tempi++) {
-		writetimes(tempfile, tab, istack.length-tempi-1);
+	// Close any remaining indentations opened so far.
+	for (size_t tempi = 0; tempi < istack.length; tempi++) {
+		writetimes(tempfile, tab, istack.length - tempi - 1);
 		tempfile.writefln("}");
 	}
 
@@ -326,50 +374,66 @@ bool Convert(string filename, string tempfilename) {
 }
 
 int main(string[] args) {
+	import std.file : exists, remove;
+	import std.string : endsWith, toStringz;
+	import std.path : stripExtension, setExtension;
+
 	if (args.length == 1) {
-		writef("D Indentation Converter v1.1\n"
+		writef("D Indentation Converter v1.2\n"
 			~ "Copyright (c) 2006, 2011, 2021, Witold Baryluk <witold.baryluk@gmail.com>\n"
 			~ "Usage:\n"
-			~ "\t%s files.dt...\n", args[0]
-		);
-		
+			~ "\t%s files.dt...\n", args[0]);
 		return 1;
 	}
 
-	/* Process files */
+	// Process files one by one
 	foreach (filename; args[1..$]) {
-		if (filename.length < 3 || filename[$-3..$] != ".dt") {
+		if (!filename.endsWith(".dt")) {
 			writefln("Unknown file type: %s", filename);
 			return 1;
 		}
-		string basename = filename[0..$-3];
+		const string basename = filename.stripExtension;
 		if (basename.length == 0) {
 			writefln("Empty basename");
 			return 1;
 		}
-		string tempfilename = basename~".d";
+		const string tempfilename = basename ~ ".d";
+		// const string tempfilename = basename.setExtension(".d");
+		// TODO(baryluk): Add option to overwrite without question.
 		if (exists(tempfilename)) {
 			writefln("Temporary file exists, aborting.");
-			return 1;			
-		}
-		if (Convert(filename, tempfilename) == false) {
-			if (exists(tempfilename)) {
-				std.file.remove(tempfilename);
-			}
 			return 1;
 		}
-		string DMD = environment.get("DMD", "dmd");
-		string c = DMD ~ " " ~ tempfilename;
-		stderr.writeln(c);
 
-		import core.stdc.stdlib : system;
-		import std.string : toStringz;
+		try {
+			if (convert(filename, tempfilename) == false) {
+				if (exists(tempfilename)) {
+					remove(tempfilename);
+				}
+				return 1;
+			}
 
-		int ret = system(c.toStringz);  // TODO(baryluk): Use std.process.spawnShell instead.
-		std.file.remove(tempfilename);
-		if (ret != 0) {
-			return ret;
+			import std.process : environment;
+
+			const string DMD = environment.get("DMD", "dmd");
+			const string cmd = DMD ~ " " ~ tempfilename;
+			stderr.writeln(cmd);
+
+			import core.stdc.stdlib : system;
+
+			// TODO(baryluk): Use std.process.spawnShell instead.
+			int ret = system(cmd.toStringz);
+			// TODO(baryluk): Add option to keep the temporary file.
+			remove(tempfilename);
+			if (ret != 0) {
+				return ret;
+			}
+		} finally {
+			if (exists(tempfilename)) {
+				remove(tempfilename);
+			}
 		}
 	}
+
 	return 0;
 }
