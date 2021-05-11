@@ -24,12 +24,12 @@ def int main(char[][] args):
 
 	switch (i):
 		case 1:
-			writefln("zosia"); break;
+			writefln("zosia"); break
 		case 2:
-			writefln("kasia"); break;
+			writefln("kasia"); break
 		case 7:
-			writefln("gosia"); break;
+			writefln("gosia"); break
 		default:
-			writefln("ala"); break;
+			writefln("ala"); break
 
 	return 0
