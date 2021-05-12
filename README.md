@@ -336,8 +336,6 @@ Will not-work. Because of unexpected indent in the processed lines.
 
   * Line-end continuation
   * `--pipe` to display converted code on stdout
-  * Convert all requested files before passing to `DMD`. So multi-file projects
-    are easier to build.
   * Use `#line` directives to preserve file / line numbers for diagnostic in D
     compiler.
   * More automated tests
