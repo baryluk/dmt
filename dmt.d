@@ -375,65 +375,146 @@ bool convert(string filename, string tempfilename) {
 
 int main(string[] args) {
 	import std.file : exists, remove;
-	import std.string : endsWith, toStringz;
+	import std.string : startsWith, endsWith, toStringz;
 	import std.path : stripExtension, setExtension;
 
 	if (args.length == 1) {
 		writef("D Indentation Converter v1.2\n"
 			~ "Copyright (c) 2006, 2011, 2021, Witold Baryluk <witold.baryluk@gmail.com>\n"
 			~ "Usage:\n"
-			~ "\t%s files.dt...\n", args[0]);
+			~ "\t%s [--keep | --convert | --overwrite] files.dt...\n", args[0]);
 		return 1;
 	}
 
-	// Process files one by one
-	foreach (filename; args[1..$]) {
-		if (!filename.endsWith(".dt")) {
-			writefln("Unknown file type: %s", filename);
-			return 1;
+	string[] filenames;
+	string[] tempfilenames;
+
+	bool keep_tempfile = false;
+	bool just_convert = false;
+	bool allow_overwrite = false;
+
+	foreach (arg; args[1..$]) {
+		if (arg == "--keep") {
+			keep_tempfile = true;
+			continue;
 		}
+		if (arg == "--convert") {
+			just_convert = true;
+			continue;
+		}
+		if (arg == "--overwrite") {
+			allow_overwrite = true;
+			continue;
+		}
+		filenames ~= arg;
+	}
+
+	if (filenames.length == 0) {
+		stderr.writefln("No filenames specified");
+		return 1;
+	}
+
+	bool convert_failed = false;
+
+
+	string[] dmd_args;
+
+	// Convert all specified files.
+	foreach (filename; filenames) {
+		if (filename.startsWith("-")) {
+			// Pass other options directly to DMD unchanged.
+			dmd_args ~= filename;
+			continue;
+		}
+
+		if (!filename.endsWith(".dt")) {
+			// Pass .d and .o files directly to DMD.
+			if (filename.endsWith(".d") || filename.endsWith(".o")) {
+				dmd_args ~= filename;
+				continue;
+			} else {
+				stderr.writefln("Unknown file type: %s", filename);
+				return 1;
+			}
+		}
+
 		const string basename = filename.stripExtension;
 		if (basename.length == 0) {
-			writefln("Empty basename");
+			stderr.writefln("Empty basename");
 			return 1;
 		}
 		const string tempfilename = basename ~ ".d";
 		// const string tempfilename = basename.setExtension(".d");
-		// TODO(baryluk): Add option to overwrite without question.
+
 		if (exists(tempfilename)) {
-			writefln("Temporary file exists, aborting.");
+			if (!allow_overwrite) {
+				stderr.writefln("Aborting due to existing temporary file %s", tempfilename);
+				return 1;
+			} else {
+				stderr.writefln("Will overwrite existing temporary file %s", tempfilename);
+			}
+		}
+
+		if (convert(filename, tempfilename) == false) {
+			stderr.writefln("Convert failed for file %s", filename);
+			convert_failed = true;
+			if (exists(tempfilename)) {
+				remove(tempfilename);
+			}
+			// TODO(baryluk): Cleanup other tempfiles
 			return 1;
 		}
 
-		try {
-			if (convert(filename, tempfilename) == false) {
-				if (exists(tempfilename)) {
-					remove(tempfilename);
-				}
-				return 1;
-			}
+		tempfilenames ~= tempfilename;
+		dmd_args ~= tempfilename;
+	}
 
+	if (tempfilenames.length == 0) {
+		stderr.writefln("No filenames specified");
+		return 1;
+	}
+
+	int ret = 0;
+	if (!convert_failed) {
+		if (!just_convert) {
 			import std.process : environment;
 
 			const string DMD = environment.get("DMD", "dmd");
-			const string cmd = DMD ~ " " ~ tempfilename;
-			stderr.writeln(cmd);
+
+			string cmd = DMD;
+
+			foreach (dmd_arg; dmd_args) {
+				// Compose the command line of files and pass-thrugh options.
+				// TODO(baryluk): Test filenames with space.
+				cmd ~= " " ~ dmd_arg;
+			}
 
 			import core.stdc.stdlib : system;
 
+			stderr.writeln(cmd);
+
 			// TODO(baryluk): Use std.process.spawnShell instead.
-			int ret = system(cmd.toStringz);
-			// TODO(baryluk): Add option to keep the temporary file.
-			remove(tempfilename);
-			if (ret != 0) {
-				return ret;
-			}
-		} finally {
+			ret = system(cmd.toStringz);
+		}
+	} else {
+		ret = 1;
+	}
+
+	if (!just_convert) {
+		foreach (tempfilename; tempfilenames) {
 			if (exists(tempfilename)) {
-				remove(tempfilename);
+				if (!keep_tempfile) {
+					try {
+						remove(tempfilename);
+					} catch (Exception e) {
+						stderr.writefln("Could not remove temporary file %s", tempfilename);
+					}
+				}	else {
+					stderr.writefln("Keeping temporary file %s for source file %s", tempfilename, tempfilename);
+				}
 			}
 		}
 	}
 
-	return 0;
+	return ret;
 }
