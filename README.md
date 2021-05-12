@@ -361,7 +361,6 @@ Will not-work. Because of unexpected indent in the processed lines.
   * `--pipe` to display converted code on stdout
   * Use `#line` directives to preserve file / line numbers for diagnostic in D
     compiler.
-  * More automated tests
   * Syntax highlighting and auto-indent hints for mcedit, vim, emacs and vs code
   * Conver to `dub` package?
   * Parse comments and handle them properly.
