@@ -5,9 +5,10 @@ class A:
 	int f
 	def this():
 		f = 4
-		writefln("Contructor")
+		writefln("Constructor")
 	def ~this():
-		writefln("Decontructor")
+		writefln("Deconstructor")
+
 	def void times(int k):
 		writefln("%d", k*f)
 

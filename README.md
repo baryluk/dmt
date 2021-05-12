@@ -1,8 +1,7 @@
-
 # Python-like indentation in D programming language
 
-This is a simple yet, powerful code translator allowing to use Python-like syntax
-to write D programs.
+This is a simple, yet powerful, code translator allowing to use Python-like
+syntax to write D programs.
 
 It operates by interpreting indents, and some keywords to translate it to a
 standard D programming language program.
@@ -21,11 +20,13 @@ class A:
   int f
   def this():
     f = 4
-    writefln("Contructor")
+    writefln("Constructor")
   def ~this():
-    writefln("Decontructor")
+    writefln("Deconstructor")
+
   def void times(int k):
     writefln("%d", k * g())
+
   private:
   def int g():
     return f + 5
@@ -43,14 +44,14 @@ Enjoy.
 ## Usage
 
 By default `dmt` tool will convert a source code, and pass it to the `dmd`
-compiler. The compiler can be changes by `DMD` environment variable, for example:
-`DMD=ldc2 dmt test4.dt`. If multiple files are passed, they are all converted
-and passed together to `dmd`.
+compiler. The compiler can be changed by environment variable `DMD`, for example:
+`DMD=ldc2 dmt test4.dt`. If multiple files are passed, they are all converted and
+passed together to `dmd`.
 
 Options:
 
 - `--keep` - keep transformed temporary files (`.d` files)
-- `--convert` - just convert and keep temporary files, don't call `dmd` or remove files.
+- `--convert` - just convert and keep temporary files, do not call `dmd` or remove files.
 - `--overwrite` - overwrite temporary files if they already exist
 - `--run` - compile first `.dt` source and run it, passing remaining arguments.
 
@@ -90,7 +91,7 @@ Using `import std` to import entire Phobos is handy, but if you script is on a
 network connected file system (like `sshfs`), it will considerably slow down the
 compilation, as the compiler is trying to find files to import relative to the
 currently compiled file first, and parse more files too. It is ok for some
-prototyping, but importing more specific modules is better long term solution
+prototyping, but importing more specific modules is a better long term solution
 (less likely to break too).
 
 ## Building
@@ -103,7 +104,7 @@ using ldc), or `DMD=gdc DMDFLAGS= make` (if using gdc).
 
 ## Indentation
 
-Indentations only follows after a line starts with a specific keyword, and is
+Indentations only follow after a line starts with a specific keyword, and is
 finished with colon.
 
 For example:
@@ -127,8 +128,8 @@ class C:
 ```
 
 If you want to declare a function (i.e. C function) or define an interface
-method, you can do that on single line without using `def`, just be sure not to
-finish it with the colon. Semicolon (`;`) is optional and should avoided, as
+method, you can do that on a single line without using `def`, just be sure not to
+finish it with the colon. Semicolon (`;`) is optional and should be avoided, as
 `dmt` will add one for you.
 
 
@@ -152,7 +153,7 @@ List of keywords introducing indents (if line finishes with colon):
 - `mixin` template definition
 - `in`, `out`, `body` sections of a function, method or interface contract
 - `invariant`
-- `try`, `catch`, `finaly`
+- `try`, `catch`, `finally`
 - `switch`, `final switch`
   - `case` and `default` can be indented or not, your choice
 - `with`
@@ -165,8 +166,8 @@ List of keywords introducing indents (if line finishes with colon):
 - `asm`
 
 
-Arrays and assosciative arrays, unfortunately can't be formated with alignment /
-indents at the moment:
+Arrays and associative arrays, unfortunately can't be formatted with alignment
+or indents at the moment:
 
 ```d
 int[] a = [
@@ -193,8 +194,8 @@ will not work. Sorry.
 You can use space or tabs, or mix of them. But consistency is required for
 matching indent levels.
 
-If you open a new indent level, the next line, must have same indent as previous
-line + new indent.
+If you open a new indent level, the next line must have the same indent as the
+previous line + new indent.
 
 So for example, this is allowed:
 
@@ -214,8 +215,8 @@ but this is not:
   \t    f(a, b, c)
 ```
 
-Also, the `if`/`else`, `in`/`out`/`body`, `case`/`default`, `try`/`catch`/`final`
-must match properly:
+Also, the `if`/`else`, `in`/`out`/`body`, `case`/`default`,
+`try`/`catch`/`finally` must match properly:
 
 This is ok:
 
@@ -240,7 +241,7 @@ but this is not:
 Indentations INSIDE the `if`/`else` (and other matching ones) blocks can differ if
 you want.
 
-This is ok, but is not recommneded:
+This is ok, but is not recommended:
 
 ```d
   if (a):
@@ -259,11 +260,11 @@ semicolon:
        f(0); g(0)
 ```
 
-You should avoid putting semicolon after the last statement, as this will most
-likely trigger the D compiler warning.
+You should avoid putting a semicolon (`;`) after the last statement, as this will
+most likely trigger a D compiler warning.
 
 Empty blocks. You can put an empty block, by not indenting, or by putting
-manually `{}` as an empty statetement:
+manually `{}` as an empty statement:
 
 ```d
   while (a-- && b--):
@@ -298,16 +299,15 @@ colon at end, like:
   while (a--) writefln(a)
 ```
 
-Note, that you can not do more than one statement, unless you actually put it in
+Note, that you can't do more than one statement, unless you actually put it in
 brackets
 
 ```d
   if (a) f(a); g(a)    // WRONG / MISLEADING
 ```
 
-Because, this will call `g` even if `f` is not called. This is because this is
-code is literally translated to D just like on the input (plus semicolon at the
-end).
+Because, this will call `g` even if `f` is not called. This is because this code
+is literally translated to D just like on the input (plus semicolon at the end).
 
 Use instead:
 
@@ -362,7 +362,7 @@ Will not-work. Because of unexpected indent in the processed lines.
   * Use `#line` directives to preserve file / line numbers for diagnostic in D
     compiler.
   * Syntax highlighting and auto-indent hints for mcedit, vim, emacs and vs code
-  * Conver to `dub` package?
+  * Convert to a `dub` package?
   * Parse comments and handle them properly.
   * Add directives and flags and environment variables to enforce indent
     style (i.e. tabs, spaces, amount, etc)
@@ -370,7 +370,7 @@ Will not-work. Because of unexpected indent in the processed lines.
 ## Limitations and notices
 
 Note that some features familiar from Python, are not implemented and not
-supported. They might be supported in the future, but that will require way more
+supported. They might be supported in the future, but that will require a more
 complex parser. Some examples are listed below.
 
 ### Line-end continuation:
@@ -416,12 +416,12 @@ at the same time, some might argue it is a good thing. Just keep your lines
 reasonably short, or assign sub-expression to own variables.
 
 
-This could be easily resolved for majority of cases, but probably will not be
+This could be easily resolved for the majority of cases, but probably will not be
 implemented.
 
 ### Mixed colon and single line statements
 
-Note, that this will definitively not work or be implemented:
+Note, that this will definitely not work or be implemented:
 
 ```d
   if (a): f(a)
@@ -435,11 +435,11 @@ Note, that this will definitively not work or be implemented:
   while (a--): writefln(a); f(a)
 ```
 
-because, it is really tricky to parse without full D language parser.
+because, it is really tricky to parse without a full D language parser.
 
 ### Multi-line comments
 
-Multi-line comments using block comments, are limited. Each line must not start
+Multi-line comments using block comments are limited. Each line must not start
 with space, and must be all aligned to same as first line:
 
 ```d
@@ -448,7 +448,7 @@ with space, and must be all aligned to same as first line:
  */
 ```
 
-is not allowed, because second line is indented more than the first one.
+is not allowed, because a second line is indented more than the first one.
 
 ```d
 /** Foo
@@ -475,8 +475,8 @@ bar;
 */;
 ```
 
-Note the semicolon at the ver end of last line. This could be important if you
-put a comment after for example `if` statement, without curly braces:
+Note the semicolon at the very end of the last line. This could be important if
+you put a comment after for example `if` statement, without curly braces:
 
 ```d
   if (a)
@@ -490,7 +490,7 @@ put a comment after for example `if` statement, without curly braces:
 In this case the body of `if` will be EMPTY. And `g` will be called
 unconditionally.
 
-Don't do silly things. And just use `//`-style comments if possible.
+Do not do silly things. And just use `//`-style comments if possible.
 
 Also mentioned before, you might opt out of some indenting features, but that
 makes it awkward and not nice at all:
@@ -532,9 +532,9 @@ line continuation (to prevent emitting a semicolon by `dmt`):
 That however, requires implementing multi-line continuation first in `dmt`.
 
 
-### Multi-line formated arrays / lists
+### Multi-line formatted arrays / lists
 
-Multi-line formated arrays / lists, like this:
+Multi-line formatted arrays / lists, like this:
 
 ```d
   auto a = [
@@ -660,7 +660,7 @@ enum X:
   C
 ```
 
-There reason is because they require commas at the end of each line, but `dmt`
+The reason is because they require commas at the end of each line, but `dmt`
 inserts semicolons at the end of each such line. Possible solutions would be make
 special case for `enum` indents, but that requires more than a simple one-level
 hack, because of things like this:
@@ -708,9 +708,9 @@ def private unittest:
   {}
 ```
 
-### parantheses in `if`, `while`, `for`, ...
+### parentheses in `if`, `while`, `for`, ...
 
-At the moment, it is required to put parantheses around the conditions, just like
+At the moment, it is required to put parentheses around the conditions, just like
 in D:
 
 ```d
@@ -725,12 +725,14 @@ but it should not be hard to allow also these forms:
     f()
 ```
 
-At the moment it is not supported.
+At the moment it is not supported. This requires a bit of evaluation, to not hide
+possible coding errors, like `if (a = 5):`, which are currently detected by D
+compilers.
 
 
 ### `@disable`d functions / methods
 
-Simply don't use `def` for declaration of `@disable`d functions
+Simply do not use `def` for declaration of `@disable`d functions
 
 ```d
 class C:
