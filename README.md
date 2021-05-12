@@ -169,6 +169,11 @@ List of keywords introducing indents (if line finishes with colon):
 - `asm`
 
 
+Note: `scope class` (storage type constraint on class instances) is not
+supported, becasue it is officially deprecated feature of the language, and might
+be removed in the future. If you really want to use it, use
+`def scope class ...:`
+
 Arrays and associative arrays, unfortunately can't be formatted with alignment
 or indents at the moment:
 
@@ -361,6 +366,7 @@ Will not-work. Because of unexpected indent in the processed lines.
 ## Short term TODO
 
   * Line-end continuation
+  * Fix support for function / method contracts (`in`, `out`, `do`, `body`).
   * Syntax highlighting and auto-indent hints for mcedit, vim, emacs and vs code
   * Convert to a `dub` package?
   * Parse comments and handle them properly.
@@ -749,3 +755,29 @@ class C:
 
 and that will most likely upset the compiler. Making the return type a `void`
 could help.
+
+
+### Function contracts
+
+Unfortunately, `dmt` at the moments does not support contracts.
+
+```d
+def int f(int b):
+  in:
+    assert(b < 10)
+  out (ret):
+    assert(ret < 1000)
+  do:
+    return b * b * b
+```
+
+```d
+def int f(int b):
+  in (b < 10)
+  out (ret; ret < 1000)
+  body:
+    return b * b * b
+```
+
+unfortuantely will not compile, and I don't have a good workaround for it at the
+moment.
