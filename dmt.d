@@ -38,7 +38,6 @@
 
 /**
  * TODO: Support comments.
- *       Fix line numbering
  *       case, default should not add new {
  *       Brackets in if, switch shouldn't be needed
  *       print => writefln, print ..., => writef transl.
@@ -122,11 +121,11 @@ void decompose(string line, out string pre, out string bdy, out string post) {
 	} else {
 		i1 = line.length;
 	}
-	debug(dmt) writefln("%d-%d-%d-%d", 0, i0, i1, line.length);
+	debug(dmt) stderr.writef!"decompose split: %d-%d-%d-%d"(0, i0, i1, line.length);
 	pre = line[0..i0];
 	bdy = line[i0..i1];
 	post = line[i1..$];
-	debug(dmt) writefln("pre='%s',bdy='%s',post='%s'", pre, bdy, post);
+	debug(dmt) stderr.writefln!": pre='%s',bdy='%s',post='%s'"(pre, bdy, post);
 }
 unittest {
 	string a, b, c;
@@ -210,14 +209,23 @@ body {
 		output.writef("%s", s);
 }
 
+private struct IndentElement {
+	// At what line of the input file, this indent level was introduced.
+	int start_line;
+	// A non-empty string with used indent.
+	string indent_chars;
+	// Is this a "normal" indent introduced using `:`, for example `if ...:`, `def:`, or one using line continuation.
+	bool bracing;
+}
+
 debug(dmt) {
 /** Prints stack of indentations */
-void printstack(string[] istack) {
+void printstack(IndentElement[] istack) {
 	import std.stdio;
 
 	stderr.writefln("Current istack:");
 	foreach (i, il; istack) {
-		stderr.writefln("il[%d]='%s' (len=%d)", i, il, il.length);
+		stderr.writefln("il[%d]='%s' (len=%d) (bracing: %s)", i, il.indent_chars, il.indent_chars.length, il.bracing);
 	}
 }
 }
@@ -244,11 +252,13 @@ bool convert(string filename, string tempfilename,
 	const string tab = "   ";
 
 	// Indentation stack
-	string[] istack;
+	IndentElement[] istack;
 
 	// Will identation be needed on next line?
 	bool indent_need = false;
 	bool waiting_for_else = false;
+	// There was a line continuation indicator on previous line?
+	bool indent_allow = false;
 
 	int lineno = 0;
 	int output_lineno = 0;
@@ -296,16 +306,16 @@ bool convert(string filename, string tempfilename,
 		string indent = pre;
 
 		// TODO(baryluk): Move this to a separate helper function.
-		size_t i = 0;
+		size_t i = 0;  // Which levels match.
 		size_t last_il_lvl = 0;
 		foreach (il_lvl, il; istack) {
 			last_il_lvl = il_lvl + 1;
 			if (indent[i..$].length > 0) {
-				if (indent[i..$].startsWith(il) == false) {
+				if (indent[i..$].startsWith(il.indent_chars) == false) {
 					stderr.writefln!"%s:%d: Indentation error"(filename, lineno);
 					return false;
 				}
-				i += il.length;
+				i += il.indent_chars.length;
 			} else {
 				last_il_lvl--;
 				debug(dmt) writefln!"%s:%d: Back to the last indent"(filename, lineno);
@@ -313,39 +323,59 @@ bool convert(string filename, string tempfilename,
 			}
 		}
 
-		debug(dmt) stderr.writefln("We were on %d level of indent", filename, lineno, last_il_lvl);
+		debug(dmt) stderr.writefln("%s:%d: We were on %d level of indent", filename, lineno, last_il_lvl);
 		size_t left = indent.length - i;
 		waiting_for_else = false;
 		if (last_il_lvl < istack.length) {
 			assert(left == 0);
 			for (size_t tempi = 0; tempi < istack.length - last_il_lvl - 1; tempi++) {
 				writetimes(tempfile, tab, istack.length - tempi - 1);
-				// Fake comment: { - to make my editor happier.
-				tempfile.writefln("}");
-				output_lineno++;
+				if (istack[istack.length - tempi - 1].bracing) {
+					debug(dmt) stderr.writefln!"Closing indent level %d using brace"(istack.length - tempi - 1);
+					// Fake comment: { - to make my editor happier.
+					tempfile.writeln("}");
+					output_lineno++;
+				} else {
+					debug(dmt) stderr.writefln!"Closing indent level %d without using brace"(istack.length - tempi - 1);
+					tempfile.writeln("");
+					output_lineno++;
+				}
 			}
 			if (last_il_lvl - 1 >= 0) {
 				writetimes(tempfile, tab, last_il_lvl);
-				// Fake comment: { - to make my editor happier.
-				tempfile.writef("}");
-				output_lineno++;
+				if (istack[last_il_lvl].bracing) {
+					// Fake comment: { - to make my editor happier.
+					tempfile.write("}");
+					output_lineno++;
+				}
 				waiting_for_else = true;
 			}
 			istack.length = last_il_lvl;
 		} else {
 			if (left > 0 && bdy.length > 0) {
-				debug(dmt) stderr.writefln!"%s:%s: New indent level: '%s' (len=%d)"(
+				debug(dmt) stderr.writefln!"%s:%d: New indent level: '%s' (len=%d)"(
 				    filename, lineno, indent[i..$], indent[i..$].length);
 				if (!indent_need) {
 					if (bdy.startsWith("//")) {
 						// Comment, ignore and do nothing
+						// writetimes(tempfile, tab, istack.length);
+						// tempfile.writeln(bdy);
+						// TODO(baryluk): It might be actually good idea to write it, for ddoc processing.
 						return true;
 					}
-					stderr.writefln!"%s:%d: Unexpected or not allowed indentation. Maybe missed colon (:) on the previous line?"(filename, lineno);
-					return false;
+					if (!indent_allow) {
+						stderr.writefln!"%s:%d: Unexpected or not allowed indentation. Maybe missed colon (:) on the previous line?"(filename, lineno);
+						return false;
+					} else {
+						debug(dmt) stderr.writefln!"%s:%d: New optional indent, allowing due to previous line having line continuation indicator"(filename, lineno);
+					}
 				}
-				debug(dmt) stderr.writefln!"%s:%d: allowed"();
-				istack ~= indent[i..$].idup;
+				debug(dmt) stderr.writefln!"%s:%d: allowed indent"(filename, lineno);
+				bool bracing = true;
+				if (indent_allow) {
+					bracing = false;  // Indent was introduced after line continuation marker.
+				}
+				istack ~= IndentElement(lineno, indent[i..$].idup, bracing);
 			} else {
 				debug(dmt) stderr.writefln!"%s:%d: No additional indent or line is blank"(filename, lineno);
 				if (indent_need) {
@@ -357,6 +387,7 @@ bool convert(string filename, string tempfilename,
 		debug(dmt) printstack(istack);
 
 		indent_need = false;
+		indent_allow = false;
 
 		debug(dmt) stderr.writef!"%s:%d: Checking if it will be allowed on a next line (bdy='%s'): "(filename, lineno, bdy);
 		auto ci = check_if_can_indent(bdy);
@@ -403,7 +434,7 @@ bool convert(string filename, string tempfilename,
 			// Emit the line, without ';' at the end.
 			tempfile.writefln!"%s"(bdy[0..$-1]);
 			output_lineno++;
-			//indent_allow = true;  // Allow custom alignment on a next line.
+			indent_allow = true;  // Allow custom alignment on a next line.
 			/* Example:
 			 *    writef(a, \
 			 *           b)
@@ -433,7 +464,7 @@ bool convert(string filename, string tempfilename,
 				tempfile.writeln();
 				continue;
 			} else {
-				stderr.writefln("%s:%d: Expected #! on the first_line, when in --run mode!", filename, lineno);
+				stderr.writefln("%s:%d: Expected #! on the first line, when in --run mode!", filename, lineno);
 				return false;
 			}
 		}
@@ -447,9 +478,12 @@ bool convert(string filename, string tempfilename,
 	}
 
 	// Close any remaining indentations opened so far.
+	debug(dmt) stderr.writeln("End of file. Closing any remaining indentations.");
 	for (size_t tempi = 0; tempi < istack.length; tempi++) {
-		writetimes(tempfile, tab, istack.length - tempi - 1);
-		tempfile.writefln("}");
+		if (istack[istack.length - tempi - 1].bracing) {
+			writetimes(tempfile, tab, istack.length - tempi - 1);
+			tempfile.writefln("}");
+		}
 	}
 
 	if (!pipe_mode) {

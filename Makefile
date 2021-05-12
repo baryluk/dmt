@@ -23,7 +23,7 @@ run_tests: dmt $(ALL_TESTS)
 	./dmt $<
 
 run_%: tests/%.dt dmt
-	./dmt -run $<
+	echo | ./dmt -run $<
 
 .PHONY: clean
 clean:

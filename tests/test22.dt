@@ -10,4 +10,4 @@ def @safe nothrow unittest:
     assert(arr == [2,2,3])
 
 def void main():
-  {}
+  //

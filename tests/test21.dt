@@ -9,4 +9,4 @@ class Sum:
         assert(sum.add(-2,0) == -2)
 
 def void main():
-  {}
+  //

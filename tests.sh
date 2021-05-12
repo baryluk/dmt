@@ -20,7 +20,8 @@ fi
 for F in test*.dt
 do
   echo "${F}"
-  "${DMT}" --overwrite -run "${F}"
+  # Feed empty file, because some programs expect inputs.
+  echo | "${DMT}" --overwrite -run "${F}"
   echo Retun code: $?
   echo
 done

@@ -1,14 +1,17 @@
 // Borrowed from https://dlang.org/spec/enum.html#named_enums
 
 enum X:
-  XA, XB, XC
+  XA, XB, XC \
 
 // Borrowed from https://dlang.org/spec/enum.html#anonymous_enums
 enum:
-  A,
-  B,
-  C
+  A, \
+  B, \
+  C \
 
 // Borrowed from https://dlang.org/spec/enum.html#manifest_constants
 enum i = 4;      // i is 4 of type int
 enum long l = 3; // l is 3 of type long
+
+def void main():
+  // ...

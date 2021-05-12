@@ -143,7 +143,7 @@ interface IFoo:
   int f()
 ```
 
-List of keywords introducing indents (if line finishes with colon):
+### List of keywords introducing indents (if line finishes with colon):
 
 - `def`
 - `if`, `else`
@@ -151,7 +151,7 @@ List of keywords introducing indents (if line finishes with colon):
 - `while`, `do`
 - `struct`, `union`
 - `class`, `interface`, `abstract class`, `final class`
-- `enum`
+- `enum` (but read limitations section how to use them)
 - `template`
 - `mixin` template definition
 - `in`, `out`, `body` sections of a function, method or interface contract
@@ -174,6 +174,8 @@ supported, becasue it is officially deprecated feature of the language, and migh
 be removed in the future. If you really want to use it, use
 `def scope class ...:`
 
+### Multi-line array literls and expressions
+
 Arrays and associative arrays, unfortunately can't be formatted with alignment
 or indents at the moment:
 
@@ -187,15 +189,52 @@ int[] a = [
 
 will not work. Sorry.
 
-Also `enum` support is limited:
+### `enum`s
+
+Also `enum` support is limited, but can be done with some workarounds:
+
+```d
+enum E { A, B, }
+```
 
 ```d
 enum E:
-  A,
-  B
+  A, \
+  B \
 ```
 
-will not work. Sorry.
+
+### Line-end continuation:
+
+Examples:
+
+```d
+  def auto f():
+     return x + \
+     y + z
+```
+
+and
+
+```d
+  def auto f():
+     return x + \
+            y + z
+```
+
+### Multi-line alignment using line-end continuation
+
+Examples:
+
+```d
+writeln(a, b, \
+        c + 5)
+```
+
+```d
+int z = (a + b + \
+         c + d)
+```
 
 ## Indentation semantics
 
@@ -363,9 +402,34 @@ def void f(int a):
 
 Will not-work. Because of unexpected indent in the processed lines.
 
+The line continuation marker (`\` at the end of the line), allows you do indent
+next line arbitarly, and does not introduce the `{` in translated code. The line
+continuation can be continued on subsequent lines, but should respect
+indentations and de-indentations.
+
+```d
+writeln(a + (c \
+             + d * (x \
+                    - y) \
+             + e))
+```
+
+should work. Additionally, it is allowed to put comments between such lines:
+
+```d
+auto x = a \
+         + b \
+         // foo bar
+         + c \
+         + d
+```
+
+(this is somehow implicit - the semicolon will be inserted, but because it is in
+a comment, it will not be a problem).
+
+
 ## Short term TODO
 
-  * Line-end continuation
   * Fix support for function / method contracts (`in`, `out`, `do`, `body`).
   * Syntax highlighting and auto-indent hints for mcedit, vim, emacs and vs code
   * Convert to a `dub` package?
@@ -379,51 +443,83 @@ Note that some features familiar from Python, are not implemented and not
 supported. They might be supported in the future, but that will require a more
 complex parser. Some examples are listed below.
 
-### Line-end continuation:
 
-```d
-  def auto f():
-     return x + \
-     y + z
-```
-
-and
-
-```d
-  def auto f():
-     return x + \
-            y + z
-```
-
-will not work.
-
-The line-end continuation will probably be supported in the future versions.
-
-### Multi-line alignment:
-
+### Multi-line alignment limitations
 
 ```d
 def auto f(a, b,
            c, d):
+  // ...
 ```
 
-```d
-writeln(a, b,
-        c + 5)
-```
-
-```d
-int z = (a + b +
-         c + d)
-```
+will not work.
 
 This is unlikely to be implemented. It is quite limiting and can be annoying, but
 at the same time, some might argue it is a good thing. Just keep your lines
 reasonably short, or assign sub-expression to own variables.
 
-
 This could be easily resolved for the majority of cases, but probably will not be
 implemented.
+
+For statements and expressions, as a work around, simply put everything on a
+single line, or use line continuations:
+
+
+```d
+auto x = f(a, b, \
+           c, d)
+```
+
+For function, method, class, templates, and other definitions / declarations,
+maybe try this:
+
+```d
+auto f(a, b, \
+       c, d) \
+def:
+   // ...
+```
+
+or for functions and methods specifically:
+
+```d
+auto f(a, b, \
+       c, d) \
+do:
+   // ...
+```
+
+(`do` is equivalent to `body`).
+
+Other example:
+
+```d
+class A : B, \
+          C!int, \
+          D!int \
+def:
+   def int f():
+     return 1
+```
+
+### Empty aggregate definitions
+
+A trick might be to use a dummy `private:` or a comment.
+
+```d
+def class A:
+  private:
+```
+
+```d
+def interface I:
+  // nothing
+```
+
+
+using `{}`, will not work, because directly inside aggregate declarations are
+expected, not BlockStatement.
+
 
 ### Mixed colon and single line statements
 
@@ -588,7 +684,19 @@ will not work.
   }
 ```
 
-is an option probably.
+is an option probably, so is:
+
+```d
+  int a = 5
+  auto l = delegate int(int b) \
+  def:
+    return a + b
+  ;
+```
+
+(Note explicit semicolon `;` after finishing the `def:` block, to finish the
+assignment statement.)
+
 
 Other option is to abandon anonymous delegates, and define named inner function:
 
@@ -699,6 +807,28 @@ enum X:
   enumvalue D, E, F
 ```
 
+As a workaround use line continuations:
+
+```d
+enum X:
+  A, \
+  B, \
+  C \
+```
+
+The line continuation marker is required after the last element of the enum too,
+even if it is end of the file. It is safe to de-indent on a next line:
+
+```d
+enum X:
+  A, \
+  B, \
+  C \
+enum Y:
+  F, \
+```
+
+
 ### Unittests
 
 To add attributes to unittests, use `def`:
@@ -779,5 +909,53 @@ def int f(int b):
     return b * b * b
 ```
 
-unfortuantely will not compile, and I don't have a good workaround for it at the
-moment.
+unfortuantely will not compile. A workaround is to use line-continuations in a
+bit hacky, but a reasonable way:
+
+```d
+int f(int b) \
+in:
+  assert(b < 10)
+out (ret):
+  assert(ret < 1000)
+do:
+  return b * b * b
+```
+
+```d
+def int f(int b) \
+in (b < 10) \
+out (ret; ret < 1000) \
+body:
+  return b * b * b
+```
+
+### Pipeline / UCFS heavy range processing is tricky:
+
+
+A D code like this:
+
+```d
+import std.stdio, std.array, std.algorithm;
+
+void main() {
+    stdin
+        .byLineCopy
+        .array
+        .sort!((a, b) => a > b) // descending order
+        .each!writeln;
+}
+```
+
+is somehow tricky to convert to `dmt` format, without introducing ugly code:
+
+```d
+import std.stdio, std.array, std.algorithm
+
+def void main():
+    stdin \
+        .byLineCopy \
+        .array \
+        .sort!((a, b) => a > b) \
+        .each!writeln
+```

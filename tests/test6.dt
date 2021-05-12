@@ -1,6 +1,12 @@
 import std.stdio
 
+// This is really hacky
+
 def void main(string[] args):
-  auto l = delegate int(int a, int b):
-    return a + b
-  writefln(l(1, 2))
+  auto l = delegate int(int a, int b) \
+    def:
+      return a + b
+  ;
+
+
+  writeln(l(1, 2))

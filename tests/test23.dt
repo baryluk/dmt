@@ -18,7 +18,7 @@ def void test():
 
         writefln("b.x = %d", b.x); // prints 5
         writefln("x = %d", x);     // prints 3
-        def :
+        def:
             mixin Foo
             writefln("x = %d", x); // prints 5
             x = 4
