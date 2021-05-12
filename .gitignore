@@ -1,0 +1,8 @@
+dmt
+a.out
+
+*.o
+
+# Temporary files
+test*.d
+test[0-9]
