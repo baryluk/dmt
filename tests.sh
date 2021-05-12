@@ -11,6 +11,12 @@ fi
 
 DMT="${BASEDIR}/dmt"
 
+if ! [ -x "${DMT}" ]; then
+  echo "${DMT} not found"
+  echo "Compile dmt first" >&2
+  exit 1
+fi
+
 for F in test*.dt
 do
   echo "${F}"
