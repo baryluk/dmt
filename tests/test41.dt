@@ -1,0 +1,9 @@
+def void main():
+  int a, b, c, d, e, x, y
+
+  import std.stdio
+
+  writeln(a + (c \
+               + d * (x \
+                      - y) \
+               + e))

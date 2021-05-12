@@ -1,0 +1,44 @@
+// Borrowed from https://dlang.org/
+
+// Interfaces and classes
+interface Printable:
+   void print(uint level) \
+   // contract is part of the interface
+   in:
+     assert(level > 0);
+
+// Interface implementation
+class Widget : Printable:
+   void print(uint level) \
+   in:
+     //
+   body:
+     //
+
+// Single inheritance of state
+class ExtendedWidget : Widget:
+   override void print(uint level) \
+   in:
+      /* weakening precondition is okay */
+   body:
+      //... level may be 0 here ...
+
+// Immutable data shared across threads
+immutable string programName = "demo"
+// Mutable data is thread-local
+int perThread = 42
+// Explicitly shared data
+shared int perApp = 5
+
+// Structs have value semantics
+struct BigNum:
+    // intercept copying
+    def this(this):
+      {}
+
+    // intercept destructor
+    def ~this():
+       {}
+
+def void main():
+    // ...

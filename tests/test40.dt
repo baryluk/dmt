@@ -1,0 +1,9 @@
+import std.stdio, std.array, std.algorithm
+
+def void main():
+    stdin \
+        .byLineCopy \
+        .array \
+        // descending order
+        .sort!((a, b) => a > b) \
+        .each!writeln

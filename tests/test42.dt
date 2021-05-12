@@ -1,0 +1,34 @@
+def void main():
+  int a, b, \
+      c, d
+
+  auto x = a \
+         + b \
+         // foo bar
+         + c \
+         + d
+
+
+enum X:
+  A, \
+  B, \
+  C \
+enum Y:
+  F, \
+
+def class B:
+  private:
+
+def interface C(T):
+  private:
+
+def interface D(T):
+  private:
+
+class A : B, \
+          C!int, \
+          D!int \
+def:
+   def int f():
+     return 1
+

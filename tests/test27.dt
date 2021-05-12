@@ -1,0 +1,35 @@
+// Borrowed from https://dlang.org/blog/2017/05/24/faster-command-line-tools-in-d/
+
+// Copyright: Jon Degenhardt, 2017
+// This is 31 lines (ignoring this and above comments), same as Python, and 8 lines less than D.
+def int main(string[] args):
+    import std.algorithm : max, maxElement
+    import std.array : split
+    import std.conv : to
+    import std.stdio
+
+    if (args.length < 4):
+        writefln ("synopsis: %s filename keyfield valuefield", args[0])
+        return 1
+
+    string filename = args[1]
+    size_t keyFieldIndex = args[2].to!size_t
+    size_t valueFieldIndex = args[3].to!size_t
+    size_t maxFieldIndex = max(keyFieldIndex, valueFieldIndex)
+    char delim = '\t'
+
+    long[string] sumByKey
+
+    foreach(line; filename.File.byLine):
+        auto fields = line.split(delim)
+        if (maxFieldIndex < fields.length):
+            string key = fields[keyFieldIndex].to!string
+            sumByKey[key] += fields[valueFieldIndex].to!long
+
+    if (sumByKey.length == 0):
+        writeln("No entries")
+    else:
+        auto maxEntry = sumByKey.byKeyValue.maxElement!"a.value"
+        writeln("max_key: ", maxEntry.key, " sum: ", maxEntry.value)
+
+    return 0

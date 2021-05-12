@@ -1,0 +1,40 @@
+// This is a little bit hacky, but should work.
+
+int f(int a, int b) \
+in:
+  if (a > 5):
+    assert(a % 2 == 0)
+out (ret):
+  assert(ret != 0)
+  assert(ret < 100)
+body:
+  return a + b * b
+
+int g(int a, int b) \
+in:
+  if (a > 5):
+    assert(a % 2 == 0)
+out (ret):
+  assert(ret != 0)
+  assert(ret < 100)
+do:
+  return a + b * b
+
+int h(int a, int b) \
+in (a % 2 == 0) \
+out (ret; ret != 0) \
+out (ret; ret < 100) \
+do:
+  return a + b * b
+
+
+int k(int a, int b) \
+in (a % 2 == 0) \
+out (ret; ret != 0) \
+out (ret; ret < 100) \
+do:
+  return a + b * b
+
+
+def int main():
+  return 0
