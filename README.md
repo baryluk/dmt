@@ -44,7 +44,18 @@ Enjoy.
 
 By default `dmt` tool will convert a source code, and pass it to the `dmd`
 compiler. The compiler can be changes by `DMD` environment variable, for example:
-`DMD=ldc2 dmt test4.dt`
+`DMD=ldc2 dmt test4.dt`. If multiple files are passed, they are all converted
+and passed together to `dmd`.
+
+Options:
+
+- `--keep` - keep transformed temporary files (`.d` files)
+- `--convert` - just convert and keep temporary files, don't call `dmd` or remove files.
+- `--overwrite` - overwrite temporary files if they already exist
+
+`*.d` and `*.o` arguments, and all other options starting with a dash, like for
+example `-O`, `-inline`, `-c`, are passed to `dmd` untouched in the same order
+and relations to file as on the `dmt` command line.
 
 ## Indentation
 
@@ -280,10 +291,7 @@ Will not-work. Because of unexpected indent in the processed lines.
 
   * Line-end continuation
   * Flags to pass extra parameters to the `DMD`  (for example `-c`, `-O`)
-  * `--keep[-tempfile]` to not remove temporary files
-  * `--remove_d_file` to remove corresponding temporary `.d` file.
   * `--pipe` to display converted code on stdout
-  * `--convert_only` to convert, but not call `DMD`
   * Convert all requested files before passing to `DMD`. So multi-file projects
     are easier to build.
   * Pass through non-`.dt` files to `DMD`, so it is easier to mix and match
