@@ -1,0 +1,25 @@
+// Borrowed from https://dlang.org/spec/statement.html#foreach_over_struct_and_classes
+class Foo:
+    uint[2] array
+
+    def int opApply(scope int delegate(ref uint) dg):
+        int result = 0
+
+        for (int i = 0; i < array.length; i++):
+            result = dg(array[i])
+            if (result):
+                break
+        return result
+
+// An example using this might be:
+
+def void main():
+    import std.stdio
+
+    Foo a = new Foo()
+
+    a.array[0] = 73
+    a.array[1] = 82
+
+    foreach (uint u; a):
+        writefln("%d", u)

@@ -52,10 +52,37 @@ Options:
 - `--keep` - keep transformed temporary files (`.d` files)
 - `--convert` - just convert and keep temporary files, don't call `dmd` or remove files.
 - `--overwrite` - overwrite temporary files if they already exist
+- `--run` - compile first `.dt` source and run it, passing remaining arguments.
 
 `*.d` and `*.o` arguments, and all other options starting with a dash, like for
 example `-O`, `-inline`, `-c`, are passed to `dmd` untouched in the same order
 and relations to file as on the `dmt` command line.
+
+
+### `#!` (sh-bang) support.
+
+Just add on a first line of the "script" this:
+
+```sh
+#!/usr/bin/env -S dmt --run
+```
+
+and make the script executable. Extra arguments from the execution will be passed
+to your script `main` function as normal.
+
+You can change `dmd` to `ldc2` using `DMD=ldc2` environment variable, or do it explicitly in the script `#!`:
+
+```sh
+#!/usr/bin/env -S DMD=ldc2 dmt --run
+```
+
+You can also manually run script, by using `-run` when invoking `dmt`:
+
+```sh
+dmt -run foo.dt
+```
+
+You can pass multiple source files if you wish.
 
 ## Indentation
 
@@ -95,18 +122,26 @@ List of keywords introducing indents (if line finishes with colon):
 
 - `def`
 - `if`, `else`
-- `for`, `foreach`, `foreach_reverse`, `while`, `do`
-- `class`, `struct`, `union`
+- `for`, `foreach`, `foreach_reverse`
+- `while`, `do`
+- `struct`, `union`
+- `class`, `interface`, `abstract class`, `final class`
 - `enum`
 - `template`
 - `mixin` template definition
 - `in`, `out`, `body` sections of a function, method or interface contract
 - `invariant`
 - `try`, `catch`, `finaly`
-- `switch`
+- `switch`, `final switch`
   - `case` and `default` can be indented or not, your choice
+- `with`
+- `scope(exit)`, `scope(failure)`, `scope(success)`
+  - only these three, with no spaces between tokens.
+- `synchronized`
+- `static if`, `static foreach`, `static foreach_reverse`
 - `version`
 - `unittest`
+- `asm`
 
 
 Arrays and assosciative arrays, unfortunately can't be formated with alignment / indents at the moment:
@@ -119,7 +154,17 @@ int[] a = [
 ]
 ```
 
-Will not work. Sorry.
+will not work. Sorry.
+
+Also `enum` support is limited:
+
+```d
+enum E:
+  A,
+  B
+```
+
+will not work. Sorry.
 
 ## Indentation semantics
 
@@ -290,16 +335,11 @@ Will not-work. Because of unexpected indent in the processed lines.
 ## Short term TODO
 
   * Line-end continuation
-  * Flags to pass extra parameters to the `DMD`  (for example `-c`, `-O`)
   * `--pipe` to display converted code on stdout
   * Convert all requested files before passing to `DMD`. So multi-file projects
     are easier to build.
-  * Pass through non-`.dt` files to `DMD`, so it is easier to mix and match
-    `dmt`, D, C, .o, assembler, etc.
-  * Better error diagnostic from `dmt` itself
   * Use `#line` directives to preserve file / line numbers for diagnostic in D
     compiler.
-  * `#!` ("sh-bang") support
   * More automated tests
   * Syntax highlighting and auto-indent hints for mcedit, vim, emacs and vs code
   * Conver to `dub` package?
@@ -307,7 +347,7 @@ Will not-work. Because of unexpected indent in the processed lines.
   * Add directives and flags and environment variables to enforce indent
     style (i.e. tabs, spaces, amount, etc)
 
-## Limitations
+## Limitations and notices
 
 Note that some features familiar from Python, are not implemented and not
 supported. They might be supported in the future, but that will require way more
@@ -531,3 +571,157 @@ Other option is to abandon anonymous delegates, and define named inner function:
     return a + b
   auto l = &f
 ```
+
+### Some annotations on declarations are not easily possible
+
+```d
+extern (C++) interface IFoo:
+  ...
+
+private class X:
+  ...
+```
+
+To work around this, simply add a `def` at the start:
+
+```d
+def extern (C++) interface IFoo:
+  ...
+
+def private class X:
+  ...
+```
+
+### Inline assembler
+
+`asm` can be used, but all instructions and labels must be at the same level of indentation:
+
+```d
+asm:
+    call L1
+    L1:
+    pop  EBX
+    mov  pc[EBP],EBX ; // pc now points to code at L1
+```
+
+### A scope block
+
+There is no easy way to introduce a new local scope. Just use `if (true)` for the moment:
+
+```d
+if (true):
+  auto x = 6
+  writefln(x)
+// writefln(x)  // x not in local scope.
+```
+
+or better `def` with nothing after:
+
+```d
+def:
+  auto x = 6
+  writefln(x)
+// writefln(x)  // x not in local scope.
+```
+
+It is a bit awkward, but works.
+
+
+### Enums
+
+Named and anonymous `enum` definitions are not currently supported:
+
+```d
+enum X:
+  A,
+  B,
+  C
+```
+
+There reason is because they require commas at the end of each line, but `dmt`
+inserts semicolons at the end of each such line. Possible solutions would be make
+special case for `enum` indents, but that requires more than a simple one-level
+hack, because of things like this:
+
+```d
+enum X:
+  A = 1
+  version(a):
+    B = 5
+  else:
+    B = 9
+```
+
+One of the options would be to explicitly prefix enumerations with some keyword:
+
+```d
+enum X:
+  enumvalue A = 1
+  version(a):
+    enumvalue B = 5
+  else:
+    enumvalue B = 9
+```
+
+This should also be possible then (because trailing commas are ok):
+
+```d
+enum X:
+  enumvalue A, B, C
+  enumvalue D, E, F
+```
+
+### Unittests
+
+To add attributes to unittests, use `def`:
+
+```d
+def @safe nothrow unittest:
+  {}
+```
+
+```d
+/// Bzium
+def private unittest:
+  {}
+```
+
+### parantheses in `if`, `while`, `for`, ...
+
+At the moment, it is required to put parantheses around the conditions, just like
+in D:
+
+```d
+  if (a > 5 && b > 3):
+    f()
+```
+
+but it should not be hard to allow also these forms:
+
+```d
+  if a > 5 && b > 3:
+    f()
+```
+
+At the moment it is not supported.
+
+
+### `@disable`d functions / methods
+
+Simply don't use `def` for declaration of `@disable`d functions
+
+```d
+class C:
+  @disable int foo();
+```
+
+because `def` requires colon and opens a new scope:
+
+```d
+class C:
+  def @disable int foo():
+    return int.init;
+```
+
+and that will most likely upset the compiler. Making the return type a `void`
+could help.

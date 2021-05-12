@@ -1,0 +1,13 @@
+// Borrowed from https://dlang.org/spec/unittest.html#attributes_unittest
+
+def void myFunc(T)(T[] data):
+    if (data.length > 2):
+        data[0] = data[1]
+
+def @safe nothrow unittest:
+    auto arr = [1,2,3]
+    myFunc(arr)
+    assert(arr == [2,2,3])
+
+def void main():
+  {}

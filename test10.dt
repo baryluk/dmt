@@ -1,0 +1,41 @@
+import std.stdio;
+
+struct Foo:
+    def void f():
+        writeln("Foo.f")
+
+struct Bar:
+    def void f():
+         writeln("Bar.f")
+
+struct Baz:
+   // f() is not implemented
+
+def void f():
+    writeln("f")
+
+def void main():
+    Foo foo
+    Bar bar
+    Baz baz
+
+    f();               // prints "f"
+
+    with(foo):
+        f();           // prints "Foo.f"
+
+        with(bar):
+            f();       // prints "Bar.f"
+
+            with(baz):
+                f();   // prints "Bar.f".  `Baz` does not implement `f()` so
+                       // resolution is forwarded to `with(bar)`'s scope
+        with(baz):
+            f();       // prints "Foo.f".  `Baz` does not implement `f()` so
+                       // resolution is forwarded to `with(foo)`'s scope
+
+    with(baz):
+        f();           // prints "f".  `Baz` does not implement `f()` so
+                       // resolution is forwarded to `main`'s scope. `f()` is
+                       // not implemented in `main`'s scope, so resolution is
+                       // subsequently forward to module scope.

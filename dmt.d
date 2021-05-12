@@ -153,10 +153,26 @@ unittest {
 
 /** Table of D langugage keywords which can introduce new indentation level */
 immutable string[] can_indent = [
-	"if", "else", "for", "foreach", "foreach_reverse",
-	"while", "try", "catch", "def", "switch", "case", "version", "finally",
-	"body", "in", "out", "invariant", "class", "struct", "template",
-	"default", "do", "unittest", "enum", "union",
+	"def",
+	"if", "else",
+	"for", "foreach", "foreach_reverse",
+	"while", "do",
+	"struct", "union",
+	"class", "abstract class", "final class",
+	"enum",
+	"template", "mixin template",
+	"body", "in", "out",
+	"invariant",
+	"try", "catch", "finally",
+	"switch", "final switch",
+	"case", "default",
+	"with",
+	"scope(exit)", "scope(failure)", "scope(success)",
+	"synchronized",
+	"static if", "static foreach", "static foreach_reverse",
+	"version",
+	"unittest",
+	"asm",
 ];
 
 /** Check if m1 introduces a new indentation level, if so return the keyword
@@ -202,19 +218,23 @@ body {
 debug(dmt) {
 /** Prints stack of indentations */
 void printstack(string[] istack) {
-	writefln("Current istack:");
+	import std.stdio;
+
+	stderr.writefln("Current istack:");
 	foreach (i, il; istack) {
-		writefln("il[%d]='%s' (len=%d)", i, il, il.length);
+		stderr.writefln("il[%d]='%s' (len=%d)", i, il, il.length);
 	}
 }
 }
+
+import std.typecons : Flag, Yes, No;
 
 /** Convert supplied file from Python-like ident style to clasic D source 
  *  with curly brackets.
  *
  * Returns false on failure (i.e. mismatched indentations).
  */
-bool convert(string filename, string tempfilename) {
+bool convert(string filename, string tempfilename, Flag!"RunMode" run_mode = No.RunMode) {
 	import std.stdio;
 	import std.string : startsWith;
 	import core.stdc.ctype : isspace;
@@ -231,11 +251,13 @@ bool convert(string filename, string tempfilename) {
 	bool indent_need = false;
 	bool waiting_for_else = false;
 
+	int lineno = 0;
+
 	bool processline(string line) {
 		string pre, bdy, post;
 		decompose(line, pre, bdy, post);
 		if (bdy == "") {
-			debug(dmt) writefln("IgnoringInput (blank line):%s", line);
+			debug(dmt) stderr.writefln!"%s:%d: IgnoringInput (blank line): %s"(filename, lineno, line);
 			debug(dmt) tempfile.writefln();
 			return true;
 		}
@@ -259,18 +281,18 @@ bool convert(string filename, string tempfilename) {
 			last_il_lvl = il_lvl + 1;
 			if (indent[i..$].length > 0) {
 				if (indent[i..$].startsWith(il) == false) {
-					writefln("Indentation error");
+					stderr.writefln!"%s:%d: Indentation error"(filename, lineno);
 					return false;
 				}
 				i += il.length;
 			} else {
 				last_il_lvl--;
-				debug(dmt) writefln("Back to the last indent");
+				debug(dmt) writefln!"%s:%d: Back to the last indent"(filename, lineno);
 				break;
 			}
 		}
 
-		debug(dmt) writefln("We were on %d level of indent", last_il_lvl);
+		debug(dmt) stderr.writefln("We were on %d level of indent", filename, lineno, last_il_lvl);
 		size_t left = indent.length - i;
 		waiting_for_else = false;
 		if (last_il_lvl < istack.length) {
@@ -289,18 +311,22 @@ bool convert(string filename, string tempfilename) {
 			istack.length = last_il_lvl;
 		} else {
 			if (left > 0 && bdy.length > 0) {
-				debug(dmt) writefln("New indent level: '%s' (len=%d)",
-				    indent[i..$], indent[i..$].length);
+				debug(dmt) stderr.writefln!"%s:%s: New indent level: '%s' (len=%d)"(
+				    filename, lineno, indent[i..$], indent[i..$].length);
 				if (!indent_need) {
-					writefln("Unallowed indentation");
+					if (bdy.startsWith("//")) {
+						// Comment, ignore and do nothing
+						return true;
+					}
+					stderr.writefln!"%s:%d: Unexpected or not allowed indentation. Maybe missed colon (:) on the previous line?"(filename, lineno);
 					return false;
 				}
-				debug(dmt) writefln("allowed");
+				debug(dmt) stderr.writefln!"%s:%d: allowed"();
 				istack ~= indent[i..$].idup;
 			} else {
-				debug(dmt) writefln("No additional indent or line is blank");
+				debug(dmt) stderr.writefln!"%s:%d: No additional indent or line is blank"(filename, lineno);
 				if (indent_need) {
-					writefln("Indentation expected");
+					stderr.writefln!"%s:%d: Indentation expected"(filename, lineno);
 					return false;
 				}
 			}
@@ -309,10 +335,10 @@ bool convert(string filename, string tempfilename) {
 
 		indent_need = false;
 
-		debug(dmt) writef("Checking if it will be allowed on a next line (bdy='%s'): ", bdy);
+		debug(dmt) stderr.writef!"%s:%d: Checking if it will be allowed on a next line (bdy='%s'): "(filename, lineno, bdy);
 		auto ci = check_if_can_indent(bdy);
 		if (ci) {
-			debug(dmt) writefln("yes ('%s' keyword)", ci);
+			debug(dmt) stderr.writefln("yes ('%s' keyword)", ci);
 			indent_need = true;
 			// Remove def from the begin if any.
 			if (ci == "def") {
@@ -344,22 +370,37 @@ bool convert(string filename, string tempfilename) {
 			}
 		}
 		if (!indent_need) {
-			debug(dmt) writefln("no");
+			debug(dmt) stderr.writefln("no");
 			if (waiting_for_else) tempfile.writeln();
 			writetimes(tempfile, tab, istack.length);
 			// TODO(baryluk): Investigate possibility: Don't add ';', if there is already ';' at the end.
 			tempfile.writefln("%s;", bdy);
 		}
 
-		debug(dmt) writefln();
+		debug(dmt) stderr.writefln();
 		return true;
 	}
 
 	foreach(ref line; file.byLine) {
+		lineno++;
+
+		if (run_mode && lineno == 1) {
+			if (line.startsWith("#!")) {
+				// Emit an empty line, so line numbers match in temporary file.
+				tempfile.writeln();
+				continue;
+			} else {
+				stderr.writefln("%s:%d: Expected #! on the first_line, when in --run mode!", filename, lineno);
+				return false;
+			}
+		}
+
 		// FIXME(baryluk): byLine returns char[], but we can safely cast it to
 		// a string, because we dont presist references to line after processing it.
-		if (processline(cast(string)line) == false)
+		if (processline(cast(string)line) == false) {
 			return false;
+		}
+
 	}
 
 	// Close any remaining indentations opened so far.
@@ -382,7 +423,7 @@ int main(string[] args) {
 		writef("D Indentation Converter v1.2\n"
 			~ "Copyright (c) 2006, 2011, 2021, Witold Baryluk <witold.baryluk@gmail.com>\n"
 			~ "Usage:\n"
-			~ "\t%s [--keep | --convert | --overwrite] files.dt...\n", args[0]);
+			~ "\t%s [--keep | --convert | --overwrite | --run] files.dt...\n", args[0]);
 		return 1;
 	}
 
@@ -392,6 +433,7 @@ int main(string[] args) {
 	bool keep_tempfile = false;
 	bool just_convert = false;
 	bool allow_overwrite = false;
+	auto run_mode = No.RunMode;
 
 	foreach (arg; args[1..$]) {
 		if (arg == "--keep") {
@@ -406,6 +448,10 @@ int main(string[] args) {
 			allow_overwrite = true;
 			continue;
 		}
+		if (arg == "--run") {
+			run_mode = Yes.RunMode;
+			continue;
+		}
 		filenames ~= arg;
 	}
 
@@ -416,11 +462,19 @@ int main(string[] args) {
 
 	bool convert_failed = false;
 
-
 	string[] dmd_args;
+	string[] run_args;
 
 	// Convert all specified files.
 	foreach (filename; filenames) {
+		// In --run mode we only convert the first file, rest of arguments is passed as program arguments.
+		if (run_mode) {
+			if (tempfilenames.length >= 1) {
+				run_args ~= filename;
+				continue;
+			}
+		}
+
 		if (filename.startsWith("-")) {
 			// Pass other options directly to DMD unchanged.
 			dmd_args ~= filename;
@@ -455,7 +509,7 @@ int main(string[] args) {
 			}
 		}
 
-		if (convert(filename, tempfilename) == false) {
+		if (convert(filename, tempfilename, run_mode) == false) {
 			stderr.writefln("Convert failed for file %s", filename);
 			convert_failed = true;
 			if (exists(tempfilename)) {
@@ -483,10 +537,22 @@ int main(string[] args) {
 
 			string cmd = DMD;
 
+			if (run_mode) {
+				cmd ~= " -run";
+			}
+
 			foreach (dmd_arg; dmd_args) {
 				// Compose the command line of files and pass-thrugh options.
 				// TODO(baryluk): Test filenames with space.
 				cmd ~= " " ~ dmd_arg;
+			}
+
+			if (run_mode) {
+				// cmd ~= " --run";
+
+				foreach (run_arg; run_args) {
+					cmd ~= " " ~ run_arg;
+				}
 			}
 
 			import core.stdc.stdlib : system;

@@ -1,3 +1,5 @@
+#!/usr/bin/env -S dmt --run
+
 def int main(string[] args):
   import std
   int sum = 0

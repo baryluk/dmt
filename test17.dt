@@ -1,0 +1,14 @@
+// Borrowed from https://dlang.org/spec/statement.html#goto-statement
+
+def void main():
+  int x = 5
+  switch (x):
+    case 3:
+        goto case
+    case 4:
+        goto default
+    case 5:
+        goto case 4
+    default:
+        x = 4
+        break

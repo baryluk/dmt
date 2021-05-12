@@ -1,0 +1,15 @@
+// Borrowed from https://dlang.org/spec/version.html#version-specification
+
+class Foo:
+    int a, b
+
+    version(full):
+        def int extrafunctionality():
+            return 1;  // extra functionality is supported
+    else:
+        def int extrafunctionality():
+            return 0;  // extra functionality is not supported
+
+def void main():
+  auto foo = new Foo()
+  foo.extrafunctionality()

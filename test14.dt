@@ -1,0 +1,17 @@
+// Borrowed from https://dlang.org/spec/statement.html#foreach_over_struct_and_classes
+struct S:
+    import std.traits : ParameterTypeTuple;  // introspection template
+
+    // foreach with 2 parameters
+    def int opApply(Dg)(scope Dg dg) if (ParameterTypeTuple!Dg.length == 2):
+        return 0
+
+    // foreach with takes 3 parameters
+    def int opApply(Dg)(scope Dg dg) if (ParameterTypeTuple!Dg.length == 3):
+        return 0
+
+def void main():
+    foreach (int a, int b; S()):
+      {}  // calls first opApply function
+    foreach (int a, int b, float c; S()):
+      {}  // calls second opApply function

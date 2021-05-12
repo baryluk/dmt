@@ -1,0 +1,28 @@
+// Borrowed from https://dlang.org/spec/statement.html#scope-guard-statement
+
+def void main():
+  import std.stdio
+
+  struct Foo:
+    def this(string s):
+      write(s)
+    def ~this():
+      write("1")
+
+  try:
+    scope(exit):
+      write("2")
+    scope(success):
+      write("3")
+    Foo f = Foo("0")
+    scope(failure):
+      write("4")
+    throw new Exception("msg")
+    scope(exit):
+      write("5")
+    scope(success):
+      write("6")
+    scope(failure) write("7");   // Single-line scope form
+  catch (Exception e):
+    {}
+  writeln()

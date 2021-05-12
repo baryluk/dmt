@@ -1,0 +1,7 @@
+// Borrowed from https://dlang.org/spec/statement.html#foreach_over_tuples
+import std.meta : AliasSeq
+
+def void main():
+    alias Seq = AliasSeq!(int, "literal", main)
+    foreach (sym; Seq):
+        pragma(msg, sym.stringof)

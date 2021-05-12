@@ -1,0 +1,11 @@
+// Borrowed from https://dlang.org/spec/statement.html#do-statement
+
+def void foo(int x):
+  import std.stdio
+  writeln(x)
+
+def void main():
+  int i = 0
+  do:
+    foo(i)
+  while (++i < 10)

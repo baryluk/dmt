@@ -1,0 +1,6 @@
+import std
+
+def void main(string[] args):
+  auto l = delegate int(int a, int b):
+    return a + b
+  writefln(l(1, 2))

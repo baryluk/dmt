@@ -1,0 +1,31 @@
+// Borrowed from https://dlang.org/spec/template-mixin.html
+
+mixin template Foo():
+    int x = 5
+
+mixin Foo
+
+struct Bar:
+    mixin Foo
+
+def void test():
+    import std.stdio
+
+    writefln("x = %d", x);         // prints 5
+    def:
+        Bar b
+        int x = 3
+
+        writefln("b.x = %d", b.x); // prints 5
+        writefln("x = %d", x);     // prints 3
+        def :
+            mixin Foo
+            writefln("x = %d", x); // prints 5
+            x = 4
+            writefln("x = %d", x); // prints 4
+        writefln("x = %d", x);     // prints 3
+    writefln("x = %d", x);         // prints 5
+
+
+def void main():
+  test()

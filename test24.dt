@@ -1,0 +1,11 @@
+@disable int foo();
+
+def @disable int bar():
+  { return 0; }
+
+class C2:
+  def @disable void foo():
+    {}
+
+def void main():
+  {}

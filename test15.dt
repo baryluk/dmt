@@ -1,0 +1,11 @@
+def bool foo(int x):
+  return x < 5
+
+def void bar():
+  {}
+
+def void main():
+  for (int i = 0; i < 10; i++):
+    if (foo(i)):
+        continue
+    bar()

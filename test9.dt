@@ -1,0 +1,9 @@
+import std.stdio;
+
+def int foo():
+    writeln("foo")
+    return 10
+
+def void main():
+    foreach (i; 0 .. foo()):
+        writeln(i)
