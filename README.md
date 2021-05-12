@@ -128,8 +128,8 @@ class C:
 
 If you want to declare a function (i.e. C function) or define an interface
 method, you can do that on single line without using `def`, just be sure not to
-finish it with the colon. Smicolon is optional and should avoided, as `dmt` will
-add one for you
+finish it with the colon. Semicolon (`;`) is optional and should avoided, as
+`dmt` will add one for you.
 
 
 ```d
