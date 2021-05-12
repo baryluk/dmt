@@ -503,3 +503,31 @@ Comments are not supported after a colon (`:`)
 
 will not work.
 
+
+### Functions and delegate literals
+
+```d
+  int a = 5
+  auto l = delegate int(int b):
+    return a + b
+```
+
+will not work.
+
+```d
+  int a = 5
+  auto l = delegate int(int b) {\
+  return a + b
+  }
+```
+
+is an option probably.
+
+Other option is to abandon anonymous delegates, and define named inner function:
+
+```d
+  int a = 5;
+  def int f(int b):
+    return a + b
+  auto l = &f
+```
