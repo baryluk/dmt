@@ -1,0 +1,19 @@
+import std;
+
+def int main(string[] args):
+  //auto t = [
+  //  1,   // TODO(baryluk): This is not allowed at the moment.
+  //  2,
+  //  3,
+  //]
+  if (args.length == 1) { writefln("No arguments passed!"); return 1; }
+  if (args.length == 2):
+      writefln("One argument passed")
+  else:
+    				writefln("More than one argument passed!")
+    				return 1
+
+  return 0
+
+def int f(int a):
+  return a * a + 2

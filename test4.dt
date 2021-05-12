@@ -1,0 +1,10 @@
+def int main(string[] args):
+  import std
+  int sum = 0
+  foreach (arg; args[1..$]):
+    try:
+      sum += to!int(arg)
+      writeln(sum)
+    catch (Exception e):
+      sum = 0
+  return 0
