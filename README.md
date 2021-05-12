@@ -67,10 +67,12 @@ Just add on a first line of the "script" this:
 #!/usr/bin/env -S dmt --run
 ```
 
-and make the script executable. Extra arguments from the execution will be passed
+and make the script executable. And make sure that `dmt` is in your `PATH` (or
+use an absolute path to dmt). Extra arguments from the execution will be passed
 to your script `main` function as normal.
 
-You can change `dmd` to `ldc2` using `DMD=ldc2` environment variable, or do it explicitly in the script `#!`:
+You can change `dmd` to `ldc2` using `DMD=ldc2` environment variable, or do it
+explicitly in the script `#!`:
 
 ```sh
 #!/usr/bin/env -S DMD=ldc2 dmt --run
@@ -101,7 +103,8 @@ using ldc), or `DMD=gdc DMDFLAGS= make` (if using gdc).
 
 ## Indentation
 
-Indentations only follows after a line starts with a specific keyword, and is finished with colon.
+Indentations only follows after a line starts with a specific keyword, and is
+finished with colon.
 
 For example:
 
@@ -123,7 +126,10 @@ class C:
      ...
 ```
 
-If you want to declare a function (i.e. C function) or define an interface method, you can do that on single line without using `def`, just be sure not to finish it with the colon. Smicolon is optional and should avoided, as `dmt` will add one for you
+If you want to declare a function (i.e. C function) or define an interface
+method, you can do that on single line without using `def`, just be sure not to
+finish it with the colon. Smicolon is optional and should avoided, as `dmt` will
+add one for you
 
 
 ```d
@@ -159,7 +165,8 @@ List of keywords introducing indents (if line finishes with colon):
 - `asm`
 
 
-Arrays and assosciative arrays, unfortunately can't be formated with alignment / indents at the moment:
+Arrays and assosciative arrays, unfortunately can't be formated with alignment /
+indents at the moment:
 
 ```d
 int[] a = [
@@ -207,8 +214,8 @@ but this is not:
   \t    f(a, b, c)
 ```
 
-Also, the `if`/`else`, `in`/`out`/`body`, `case`/`default`, `try`/`catch`/`final` must match
-properly:
+Also, the `if`/`else`, `in`/`out`/`body`, `case`/`default`, `try`/`catch`/`final`
+must match properly:
 
 This is ok:
 
@@ -252,8 +259,8 @@ semicolon:
        f(0); g(0)
 ```
 
-You should avoid putting semicolon after the last statement, as this will most likely
-trigger the D compiler warning.
+You should avoid putting semicolon after the last statement, as this will most
+likely trigger the D compiler warning.
 
 Empty blocks. You can put an empty block, by not indenting, or by putting
 manually `{}` as an empty statetement:
@@ -291,7 +298,8 @@ colon at end, like:
   while (a--) writefln(a)
 ```
 
-Note, that you can not do more than one statement, unless you actually put it in brackets
+Note, that you can not do more than one statement, unless you actually put it in
+brackets
 
 ```d
   if (a) f(a); g(a)    // WRONG / MISLEADING
@@ -513,7 +521,8 @@ baz"
 
 will make the `dmt` confused, and generate an error.
 
-Only option is to use string concatenation operator (`~`) together with explicit line continuation (to prevent emitting a semicolon by `dmt`):
+Only option is to use string concatenation operator (`~`) together with explicit
+line continuation (to prevent emitting a semicolon by `dmt`):
 
 ```d
   int a = "foo\n" \
@@ -619,7 +628,8 @@ asm:
 
 ### A scope block
 
-There is no easy way to introduce a new local scope. Just use `if (true)` for the moment:
+There is no easy way to introduce a new local scope. Just use `if (true)` for the
+moment:
 
 ```d
 if (true):
