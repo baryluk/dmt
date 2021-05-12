@@ -361,8 +361,6 @@ Will not-work. Because of unexpected indent in the processed lines.
 ## Short term TODO
 
   * Line-end continuation
-  * Use `#line` directives to preserve file / line numbers for diagnostic in D
-    compiler.
   * Syntax highlighting and auto-indent hints for mcedit, vim, emacs and vs code
   * Convert to a `dub` package?
   * Parse comments and handle them properly.

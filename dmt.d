@@ -255,27 +255,49 @@ bool convert(string filename, string tempfilename,
 	bool waiting_for_else = false;
 
 	int lineno = 0;
+	int output_lineno = 0;
+	int last_sync_lineno = 0;
 
 	bool processline(string line) {
+		last_sync_lineno++;
+
+		if (!pipe_mode) {
+			// Only output the '# line' sequences when needed. This
+			// speeds up parsing a little, and makes debuging `dmt`
+			// converted code easier.
+			//
+			// Note, that in --pipe mode, we don't emit '# line' sequences
+			// for readability.
+			if (last_sync_lineno != output_lineno || lineno == 1) {
+				// See https://dlang.org/spec/lex.html#special-token-sequence for details.
+				tempfile.writefln!"#line %d \"%s\""(lineno, filename);
+				last_sync_lineno = output_lineno;
+			}
+		}
+
 		string pre, bdy, post;
 		decompose(line, pre, bdy, post);
 		if (bdy == "") {
 			debug(dmt) stderr.writefln!"%s:%d: IgnoringInput (blank line): %s"(filename, lineno, line);
-			debug(dmt) tempfile.writefln();
+			//debug(dmt) {
+				// We output the empty lines, just to make output more extra readable,
+				// and to reduce the amount of '# line' sequences.
+				tempfile.writeln();
+				output_lineno++;
+			//}
 			return true;
 		}
 
 		debug assert(bdy != "");
 
 		debug(dmt) {
-			writefln("Input:%s", line);
-			writefln("pre:'%s' (len=%d)", pre, pre.length);
-			writefln("bdy:'%s'", bdy);
-			writefln("post:'%s'", post);
+			stderr.writefln!"Input:%s"(line);
+			stderr.writefln!"pre:'%s' (len=%d)"(pre, pre.length);
+			stderr.writefln!"bdy:'%s'"(bdy);
+			stderr.writefln!"post:'%s'"(post);
 			printstack(istack);
 		}
 		string indent = pre;
-
 
 		// TODO(baryluk): Move this to a separate helper function.
 		size_t i = 0;
@@ -304,11 +326,13 @@ bool convert(string filename, string tempfilename,
 				writetimes(tempfile, tab, istack.length - tempi - 1);
 				// Fake comment: { - to make my editor happier.
 				tempfile.writefln("}");
+				output_lineno++;
 			}
 			if (last_il_lvl - 1 >= 0) {
 				writetimes(tempfile, tab, last_il_lvl);
 				// Fake comment: { - to make my editor happier.
 				tempfile.writef("}");
+				output_lineno++;
 				waiting_for_else = true;
 			}
 			istack.length = last_il_lvl;
@@ -353,7 +377,7 @@ bool convert(string filename, string tempfilename,
 				bdy = bdy[1..$];
 			}
 			if (ci == "case" || ci == "default") {
-				if (waiting_for_else) tempfile.writeln();
+				if (waiting_for_else) { tempfile.writeln(); output_lineno++; }
 				writetimes(tempfile, tab, istack.length);
 				// For case and default, both dmt and real-D, require actuall collon at the end.
 				// case 5:  -> case 5:
@@ -361,9 +385,10 @@ bool convert(string filename, string tempfilename,
 				// However, we still add the {. This could be avoided, and enable few extra
 				// features, but I find them error-prone, and almost never used.
 				tempfile.writefln!"%s {"(bdy[0..$]);  // Fake comment: } - to make my editor happier.
+				output_lineno++;
 			} else {
 				if (ci != "else") {
-					if (waiting_for_else) tempfile.writeln();
+					if (waiting_for_else) { tempfile.writeln(); output_lineno++; }
 					writetimes(tempfile, tab, istack.length);
 				} else {
 					tempfile.write(" ");
@@ -372,14 +397,16 @@ bool convert(string filename, string tempfilename,
 				// else: -> else {
 				// class A : B: -> class A : B {
 				tempfile.writefln!"%s {"(bdy[0..$-1]);  // Fake comment: } - to make my editor happier.
+				output_lineno++;
 			}
 		} else if (bdy.length >= 1 && bdy[$-1] == '\\') {
 			debug(dmt) stderr.writefln!"no - line continuation next"();
 			assert(indent_need == false);
-			if (waiting_for_else) tempfile.writeln();
+			if (waiting_for_else) { tempfile.writeln(); output_lineno++; }
 			writetimes(tempfile, tab, istack.length);
 			// Emit the line, without ';' at the end.
 			tempfile.writefln!"%s"(bdy[0..$-1]);
+			output_lineno++;
 			//indent_allow = true;  // Allow custom alignment on a next line.
 			/* Example:
 			 *    writef(a, \
@@ -387,10 +414,11 @@ bool convert(string filename, string tempfilename,
 			 */
 		} else if (!indent_need) {
 			debug(dmt) stderr.writefln!"no"();
-			if (waiting_for_else) tempfile.writeln();
+			if (waiting_for_else) { tempfile.writeln(); output_lineno++; }
 			writetimes(tempfile, tab, istack.length);
 			// TODO(baryluk): Investigate possibility: Don't add ';', if there is already ';' at the end.
 			tempfile.writefln!"%s;"(bdy);
+			output_lineno++;
 		} else {
 			debug(dmt) stderr.writefln!"what?"();
 			assert(0);
