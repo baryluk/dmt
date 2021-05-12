@@ -12,17 +12,17 @@ dmt: dmt.d
 test: dmt tests
 	./test1
 
-ALL_TESTS_SOURCES := $(wildcard test*.dt)
+ALL_TESTS_SOURCES := $(wildcard tests/test*.dt)
 #ALL_TESTS := $(ALL_TESTS_SOURCES:.dt=)
-ALL_TESTS := $(ALL_TESTS_SOURCES:%.dt=run_%)
+ALL_TESTS := $(ALL_TESTS_SOURCES:tests/%.dt=run_%)
 
 run_tests: dmt $(ALL_TESTS)
 	:
 
-%: dmt %.dt
+%: dmt tests/%.dt
 	./dmt $<
 
-run_%: %.dt dmt
+run_%: tests/%.dt dmt
 	./dmt -run $<
 
 .PHONY: clean

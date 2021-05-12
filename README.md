@@ -36,7 +36,7 @@ def int main(string[] args):
   return 0
 ```
 
-See `test*.dt` files for more examples.
+See `tests/test*.dt` files for more examples.
 
 Enjoy.
 
