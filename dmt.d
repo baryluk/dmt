@@ -157,7 +157,7 @@ immutable string[] can_indent = [
 	"for", "foreach", "foreach_reverse",
 	"while", "do",
 	"struct", "union",
-	"class", "abstract class", "final class",
+	"class", "interface", "abstract class", "final class",
 	"enum",
 	"template", "mixin template",
 	"body", "in", "out",
@@ -183,9 +183,7 @@ immutable string[] can_indent = [
  * as computed in `bdy` output argument of `decompose` function.
  */
 string check_if_can_indent(string m1)
-in {
-	assert(m1.length > 0);
-}
+in (m1.length > 0)
 body {
 	foreach (ci; can_indent) {
 		if (strcmp_first2(m1, ci) == true && m1[$-1] == ':') {
@@ -206,9 +204,7 @@ unittest {
 
 /** Repeats string 's' 'times' time on the output 'output'. */
 void writetimes(OutputStream)(OutputStream output, string s, size_t times)
-in {
-	assert(s.length > 0);
-}
+in (s.length > 0)
 body {
 	for (size_t i = 0; i < times; i++)
 		output.writef("%s", s);
@@ -556,6 +552,11 @@ int main(string[] args) {
 				stderr.writefln("Unknown file type: %s", filename);
 				return 1;
 			}
+		}
+
+		if (!exists(filename)) {
+			stderr.writefln("Aborting due to missing input file %s", filename);
+			return 1;
 		}
 
 		const string basename = filename.stripExtension;
