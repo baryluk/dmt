@@ -1,6 +1,6 @@
 // Borrowed from https://dlang.org/spec/statement.html#foreach_over_delegates
 def void main():
-    import std
+    import std.stdio
 
     // Custom loop implementation, that iterates over powers of 2 with
     // alternating sign. The loop body is passed in dg.

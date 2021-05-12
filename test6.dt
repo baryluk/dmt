@@ -1,4 +1,4 @@
-import std
+import std.stdio
 
 def void main(string[] args):
   auto l = delegate int(int a, int b):

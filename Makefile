@@ -2,21 +2,30 @@
 all: dmt
 
 DMD ?= dmd
-DMDFLAGS = -release -inline -O
+DMDFLAGS ?= -release -inline -O
 #DMDFLAGS = -cov -unittest -release -inline -O
 
 dmt: dmt.d
 	$(DMD) $(DMDFLAGS) dmt.d
-	strip ./dmt
 
-.PHONY: test
-test: dmt test1.dt test2.dt test3.dt
-	./dmt test1.dt
-	./dmt test2.dt
-	./dmt test3.dt
+.PHONY: test tests run_tests
+test: dmt tests
+	./test1
+
+ALL_TESTS_SOURCES := $(wildcard test*.dt)
+#ALL_TESTS := $(ALL_TESTS_SOURCES:.dt=)
+ALL_TESTS := $(ALL_TESTS_SOURCES:%.dt=run_%)
+
+run_tests: dmt $(ALL_TESTS)
+	:
+
+%: dmt %.dt
+	./dmt $<
+
+run_%: %.dt dmt
+	./dmt -run $<
 
 .PHONY: clean
 clean:
-	rm -f ./dmt dmt.o
-	rm -f test1 test2 test3
-	rm -f test1.o test2.o test3.o
+	rm -v -f dmt dmt.o a.out
+	rm -v -f test*.o test*.d

@@ -84,6 +84,21 @@ dmt -run foo.dt
 
 You can pass multiple source files if you wish.
 
+Using `import std` to import entire Phobos is handy, but if you script is on a
+network connected file system (like `sshfs`), it will considerably slow down the
+compilation, as the compiler is trying to find files to import relative to the
+currently compiled file first, and parse more files too. It is ok for some
+prototyping, but importing more specific modules is better long term solution
+(less likely to break too).
+
+## Building
+
+`dmt` has just one source file: `dmt.d`. Compile it as you like into executable,
+using your favorite D compiler.
+
+You can also just use `make` (if using dmd), or `DMD=ldc2 DMDFLAGS= make` (if
+using ldc), or `DMD=gdc DMDFLAGS= make` (if using gdc).
+
 ## Indentation
 
 Indentations only follows after a line starts with a specific keyword, and is finished with colon.

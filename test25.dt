@@ -1,5 +1,5 @@
 #!/usr/bin/env -S DMD=ldc2 dmt --run
 
-import std
+import std.stdio
 def void main(string[] args):
   writefln("Args: %s", args)

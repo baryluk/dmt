@@ -1,7 +1,7 @@
 #!/usr/bin/env -S dmt --run
 
 def int main(string[] args):
-  import std
+  import std.stdio, std.conv
   int sum = 0
   foreach (arg; args[1..$]):
     try:

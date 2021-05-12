@@ -37,8 +37,7 @@
  */
 
 /**
- * TODO: Support line continuation operator (\ - backslash)
- *       and comments.
+ * TODO: Support comments.
  *       Fix line numbering
  *       case, default should not add new {
  *       Brackets in if, switch shouldn't be needed
@@ -338,12 +337,14 @@ bool convert(string filename, string tempfilename, Flag!"RunMode" run_mode = No.
 		debug(dmt) stderr.writef!"%s:%d: Checking if it will be allowed on a next line (bdy='%s'): "(filename, lineno, bdy);
 		auto ci = check_if_can_indent(bdy);
 		if (ci) {
-			debug(dmt) stderr.writefln("yes ('%s' keyword)", ci);
+			debug(dmt) stderr.writefln!"yes ('%s' keyword)"(ci);
 			indent_need = true;
 			// Remove def from the begin if any.
 			if (ci == "def") {
 				bdy = bdy[3..$];
 			}
+			// Remove the space after def, if any.
+			// Make this optional, allows use to do: `def:`
 			if (bdy.length >= 1 && isspace(bdy[0])) {
 				bdy = bdy[1..$];
 			}
@@ -355,29 +356,43 @@ bool convert(string filename, string tempfilename, Flag!"RunMode" run_mode = No.
 				// default: -> default:
 				// However, we still add the {. This could be avoided, and enable few extra
 				// features, but I find them error-prone, and almost never used.
-				tempfile.writefln("%s {", bdy[0..$]);  // Fake comment: } - to make my editor happier.
+				tempfile.writefln!"%s {"(bdy[0..$]);  // Fake comment: } - to make my editor happier.
 			} else {
 				if (ci != "else") {
 					if (waiting_for_else) tempfile.writeln();
 					writetimes(tempfile, tab, istack.length);
 				} else {
-					tempfile.writef(" ");
+					tempfile.write(" ");
 				}
 				// For cases other than case and default, we need to strip the collon at the end.
 				// else: -> else {
 				// class A : B: -> class A : B {
-				tempfile.writefln("%s {", bdy[0..$-1]);  // Fake comment: } - to make my editor happier.
+				tempfile.writefln!"%s {"(bdy[0..$-1]);  // Fake comment: } - to make my editor happier.
 			}
-		}
-		if (!indent_need) {
-			debug(dmt) stderr.writefln("no");
+		} else if (bdy.length >= 1 && bdy[$-1] == '\\') {
+			debug(dmt) stderr.writefln!"no - line continuation next"();
+			assert(indent_need == false);
+			if (waiting_for_else) tempfile.writeln();
+			writetimes(tempfile, tab, istack.length);
+			// Emit the line, without ';' at the end.
+			tempfile.writefln!"%s"(bdy[0..$-1]);
+			//indent_allow = true;  // Allow custom alignment on a next line.
+			/* Example:
+			 *    writef(a, \
+			 *           b)
+			 */
+		} else if (!indent_need) {
+			debug(dmt) stderr.writefln!"no"();
 			if (waiting_for_else) tempfile.writeln();
 			writetimes(tempfile, tab, istack.length);
 			// TODO(baryluk): Investigate possibility: Don't add ';', if there is already ';' at the end.
-			tempfile.writefln("%s;", bdy);
+			tempfile.writefln!"%s;"(bdy);
+		} else {
+			debug(dmt) stderr.writefln!"what?"();
+			assert(0);
 		}
 
-		debug(dmt) stderr.writefln();
+		debug(dmt) stderr.writeln();
 		return true;
 	}
 

@@ -1,4 +1,4 @@
-import std;
+import std.stdio
 
 def int main(string[] args):
   //auto t = [
