@@ -233,13 +233,17 @@ import std.typecons : Flag, Yes, No;
  *
  * Returns false on failure (i.e. mismatched indentations).
  */
-bool convert(string filename, string tempfilename, Flag!"RunMode" run_mode = No.RunMode) {
+bool convert(string filename, string tempfilename,
+             Flag!"RunMode" run_mode = No.RunMode,
+             Flag!"PipeMode" pipe_mode = No.PipeMode) {
+	assert(!(run_mode && pipe_mode));
+
 	import std.stdio;
 	import std.string : startsWith;
 	import core.stdc.ctype : isspace;
 
 	auto file = File(filename, "r");
-	auto tempfile = File(tempfilename, "w");
+	auto tempfile = pipe_mode ? stdout : File(tempfilename, "w");
 
 	const string tab = "   ";
 
@@ -424,7 +428,9 @@ bool convert(string filename, string tempfilename, Flag!"RunMode" run_mode = No.
 		tempfile.writefln("}");
 	}
 
-	tempfile.close();
+	if (!pipe_mode) {
+		tempfile.close();
+	}
 
 	return true;
 }
@@ -438,7 +444,7 @@ int main(string[] args) {
 		writef("D Indentation Converter v1.2\n"
 			~ "Copyright (c) 2006, 2011, 2021, Witold Baryluk <witold.baryluk@gmail.com>\n"
 			~ "Usage:\n"
-			~ "\t%s [--keep | --convert | --overwrite | --run] files.dt...\n", args[0]);
+			~ "\t%s [--keep | --convert | --overwrite | --pipe | --run] files.dt... other_files args\n", args[0]);
 		return 1;
 	}
 
@@ -449,6 +455,7 @@ int main(string[] args) {
 	bool just_convert = false;
 	bool allow_overwrite = false;
 	auto run_mode = No.RunMode;
+	auto pipe_mode = No.PipeMode;
 
 	foreach (arg; args[1..$]) {
 		if (arg == "--keep") {
@@ -467,12 +474,28 @@ int main(string[] args) {
 			run_mode = Yes.RunMode;
 			continue;
 		}
+		if (arg == "--pipe") {
+			pipe_mode = Yes.PipeMode;
+			continue;
+		}
 		filenames ~= arg;
 	}
 
 	if (filenames.length == 0) {
 		stderr.writefln("No filenames specified");
 		return 1;
+	}
+
+	if (pipe_mode && run_mode) {
+		stderr.writefln("--pipe and --run can not be specified at the same time");
+		return 1;
+	}
+
+	if (pipe_mode) {
+		if (filenames.length != 1) {
+			stderr.writefln("Exactly one .dt file expected when using --pipe");
+			return 1;
+		}
 	}
 
 	bool convert_failed = false;
@@ -515,7 +538,7 @@ int main(string[] args) {
 		const string tempfilename = basename ~ ".d";
 		// const string tempfilename = basename.setExtension(".d");
 
-		if (exists(tempfilename)) {
+		if (exists(tempfilename) && !pipe_mode) {
 			if (!allow_overwrite) {
 				stderr.writefln("Aborting due to existing temporary file %s", tempfilename);
 				return 1;
@@ -524,10 +547,10 @@ int main(string[] args) {
 			}
 		}
 
-		if (convert(filename, tempfilename, run_mode) == false) {
+		if (convert(filename, tempfilename, run_mode, pipe_mode) == false) {
 			stderr.writefln("Convert failed for file %s", filename);
 			convert_failed = true;
-			if (exists(tempfilename)) {
+			if (!pipe_mode && exists(tempfilename)) {
 				remove(tempfilename);
 			}
 			// TODO(baryluk): Cleanup other tempfiles
@@ -545,7 +568,7 @@ int main(string[] args) {
 
 	int ret = 0;
 	if (!convert_failed) {
-		if (!just_convert) {
+		if (!just_convert && !pipe_mode) {
 			import std.process : environment;
 
 			const string DMD = environment.get("DMD", "dmd");
@@ -581,7 +604,7 @@ int main(string[] args) {
 		ret = 1;
 	}
 
-	if (!just_convert) {
+	if (!just_convert && !pipe_mode) {
 		foreach (tempfilename; tempfilenames) {
 			if (exists(tempfilename)) {
 				if (!keep_tempfile) {

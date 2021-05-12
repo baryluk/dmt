@@ -43,8 +43,9 @@ Enjoy.
 
 ## Usage
 
-By default `dmt` tool will convert a source code, and pass it to the `dmd`
-compiler. The compiler can be changed by environment variable `DMD`, for example:
+By default `dmt` tool will convert a source code in files ending with the `.dt`
+extension, and pass it to a D compiler. By default the `dmd` compiler will be
+used. The compiler can be changed by environment variable `DMD`, for example:
 `DMD=ldc2 dmt test4.dt`. If multiple files are passed, they are all converted and
 passed together to `dmd`.
 
@@ -53,7 +54,9 @@ Options:
 - `--keep` - keep transformed temporary files (`.d` files)
 - `--convert` - just convert and keep temporary files, do not call `dmd` or remove files.
 - `--overwrite` - overwrite temporary files if they already exist
-- `--run` - compile first `.dt` source and run it, passing remaining arguments.
+- `--run` - compile first `.dt` source and run it, passing remaining arguments
+- `--pipe` - transform a single `.dt` file to `.d` and output it on a standard
+output.
 
 `*.d` and `*.o` arguments, and all other options starting with a dash, like for
 example `-O`, `-inline`, `-c`, are passed to `dmd` untouched in the same order
@@ -358,7 +361,6 @@ Will not-work. Because of unexpected indent in the processed lines.
 ## Short term TODO
 
   * Line-end continuation
-  * `--pipe` to display converted code on stdout
   * Use `#line` directives to preserve file / line numbers for diagnostic in D
     compiler.
   * Syntax highlighting and auto-indent hints for mcedit, vim, emacs and vs code
