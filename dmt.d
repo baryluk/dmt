@@ -199,16 +199,21 @@ immutable string[] can_indent = [
  * `m1` should already have leading and trailing whitespaces removed,
  * as computed in `bdy` output argument of `decompose` function.
  */
-string check_if_can_indent(string m1)
+string check_if_can_indent(string m1) pure @nogc
 in {
 	assert(m1.length > 0);
 }
 body {
+	if (m1[$-1] != ':') {
+		return null;
+	}
+
 	foreach (ci; can_indent) {
-		if (strcmp_first2(m1, ci) == true && m1[$-1] == ':') {
+		if (strcmp_first2(m1, ci)) {
 			return ci;
 		}
 	}
+
 	return null;
 }
 unittest {
