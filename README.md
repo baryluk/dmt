@@ -431,6 +431,9 @@ a comment, it will not be a problem).
 ## Short term TODO
 
   * Refactor `convert` API to allow unittests of it.
+  * Once refactored, make `convert` functionality available as a CTFE-able
+    function. Together with `q{}` strings and `import()` expressions,
+    this could be really cool.
   * Add directives and flags and environment variables to enforce indent
     style (i.e. tabs, spaces, amount, etc)
   * Make `dmt` self hosting (`dmt.d` converted to `dmt.dt`, and provide
