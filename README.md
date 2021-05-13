@@ -430,12 +430,29 @@ a comment, it will not be a problem).
 
 ## Short term TODO
 
-  * Fix support for function / method contracts (`in`, `out`, `do`, `body`).
-  * Syntax highlighting and auto-indent hints for mcedit, vim, emacs and vs code
-  * Convert to a `dub` package?
-  * Parse comments and handle them properly.
+  * Refactor `convert` API to allow unittests of it.
   * Add directives and flags and environment variables to enforce indent
     style (i.e. tabs, spaces, amount, etc)
+  * Make `dmt` self hosting (`dmt.d` converted to `dmt.dt`, and provide
+    a bootstrap binary, or a simplified / older implementation of `dmt.d`,
+    to do a bootstrap process)
+  * Parse comments better and handle them properly.
+  * Improve support for function / method contracts (`in`, `out`, `do`, `body`),
+    with line-continuations it now works, but would be nice to make it even better
+  * Syntax highlighting and auto-indent hints for mcedit, vim, emacs and vs code
+  * Convert to a `dub` package?
+  * Enforce same alignment of `case` and `default` in `switch`. This is should be
+    possible to disable tho, because of ability to add switch `case` cases using
+    `static foreach` for example
+  * Enforce `catch` and `finally` to have same indent as `try`, similar how
+    `else` needs to have same indent as `if`.
+  * Once `gdc` compiler catches up and supports `do` (instead of `body`).
+    DMD 2.097.0 will start producing deprecation notices about usage of `body`.
+    Once this is in gdc, we can also start using `body` as identifier, instead of
+    `bdy` (i.e. in `decompose` and `convert`).
+  * Similarly once `gdc` compiler supports "new" short style versions of
+    function contracts (`in (AssertExpression)`,
+    `out ([ref] ident; AssertExpression)`), convert to using them.
 
 ## Limitations and notices
 
