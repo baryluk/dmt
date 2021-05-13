@@ -72,20 +72,18 @@ body {
 	import std.string : startsWith;
 	import core.stdc.ctype : isalnum;
 
-	if (big.startsWith(small) == false) {
+	if (!big.startsWith(small)) {
 		return false;
-	} else {
-		size_t l = small.length;
-		if (big.length > l) {
-			if (isalnum(big[l]))
-				return false;
-			if (big[l] == '_')
-				return false;	
-			return true;
-		} else {
-			return true;
-		}
 	}
+	const size_t l = small.length;
+	assert(big.length >= l);
+	if (big.length == l) {
+		return true;
+	}
+	if (isalnum(big[l]) || big[l] == '_') {
+		return false;
+	}
+	return true;
 }
 unittest {
 	assert(strcmp_first2("abcdef", "abc") == false);
@@ -630,7 +628,9 @@ int main(string[] args) {
 	}
 
 	int ret = 0;
-	if (!convert_failed) {
+	if (convert_failed) {
+		ret = 1;
+	} else {
 		if (!just_convert && !pipe_mode) {
 			import std.process : environment;
 
@@ -663,8 +663,6 @@ int main(string[] args) {
 			// TODO(baryluk): Use std.process.spawnShell instead.
 			ret = system(cmd.toStringz);
 		}
-	} else {
-		ret = 1;
 	}
 
 	if (!just_convert && !pipe_mode) {
