@@ -457,6 +457,16 @@ a comment, it will not be a problem).
     function contracts (`in (AssertExpression)`,
     `out ([ref] ident; AssertExpression)`), convert to using them.
 
+## Speed
+
+There was no profiling or deeper optimizations done yet with `dmt`, but on my
+machine in release mode, it processes 1.14 million lines per second, and
+processes 37MB/s (this is quite dependent on the average line length in the
+source file) from the input. Pretty good. This certainly can be improved, but is
+plenty fast, and for big projects with many files, the conversion process can be
+fully parallelized in the build system. A moderatly complex module with 1000
+lines converts in just 5ms.
+
 ## Limitations and notices
 
 Note that some features familiar from Python, are not implemented and not
