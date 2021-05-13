@@ -102,7 +102,27 @@ unittest {
 
 /** Decompose line into whitespace prefix (indent), body, and postfix
  * (with eventual comment, and \) */
-void decompose(string line, out string pre, out string bdy, out string post) {
+void decompose(string line, out string pre, out string bdy, out string post)
+out {
+	import core.stdc.ctype : isspace;
+
+	assert(line == pre ~ bdy ~ post);
+	foreach (c; pre) {
+		assert(isspace(c));
+	}
+	if (bdy.length > 0) {
+		assert(!isspace(bdy[0]));
+		assert(!isspace(bdy[$-1]));
+	}
+	foreach (c; post) {
+		assert(isspace(c));
+	}
+	if (bdy.length == 0) {
+	//	assert(pre.length == 0);
+		assert(post.length == 0);
+	}
+}
+body {
 	import core.stdc.ctype : isspace;
 
 	size_t i0;  // index of first non white char
@@ -180,7 +200,9 @@ immutable string[] can_indent = [
  * as computed in `bdy` output argument of `decompose` function.
  */
 string check_if_can_indent(string m1)
-in (m1.length > 0)
+in {
+	assert(m1.length > 0);
+}
 body {
 	foreach (ci; can_indent) {
 		if (strcmp_first2(m1, ci) == true && m1[$-1] == ':') {
@@ -201,7 +223,9 @@ unittest {
 
 /** Repeats string 's' 'times' time on the output 'output'. */
 void writetimes(OutputStream)(OutputStream output, string s, size_t times)
-in (s.length > 0)
+in {
+  assert(s.length > 0);
+}
 body {
 	for (size_t i = 0; i < times; i++)
 		output.writef("%s", s);
