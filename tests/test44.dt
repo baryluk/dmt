@@ -1,0 +1,19 @@
+class A:
+  private \
+  def:
+    int a
+    float b
+    public string c
+  def auto sum():
+    return a + b
+
+def void main():
+  import std.traits
+  auto a = new A()
+  // TODO: Change getProtection -> getVisbility, as getProtection is old form
+  static assert(__traits(getProtection, a.a) == "private")
+  static assert(__traits(getProtection, a.b) == "private")
+  static assert(__traits(getProtection, a.c) == "public")
+  static assert(__traits(getProtection, a.sum) == "public")
+  a.c = "xyz"
+  a.sum()

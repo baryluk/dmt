@@ -174,6 +174,52 @@ supported, becasue it is officially deprecated feature of the language, and migh
 be removed in the future. If you really want to use it, use
 `def scope class ...:`
 
+Note: `public:`, `private:`, `protected:`, `package:`, `export:`, `extern(...):`,
+`pragma(.....):`, `@nogc:`, `nothrow:`, `@trusted:`, `@safe`, `pure:`,
+`@system:`, `@live`, `@property`, `static:`, `extern:`, `abstract:`, `final:`,
+`override:`, `auto:` (yikes!), `shared:`, `__gshared:` and similar existing
+attributes used in `attribute:` form, or user defined UDAs, neighter allow new
+indent level by themselves, nor they introduce any `{}`-style block for
+subsequent statement. However, if set in some specific scope, they only applies
+to the definitions in that scope, at that nesting level, up until the end of that
+scope. This is the same semantic as in a normal D programming language.
+
+This allows easier changing of attributes for subsequent symbols and declaration
+in the module, classes and other places, which IMHO is more common form than,
+block style changes of attributes.
+
+So for example in following class:
+
+```d
+class A:
+  private:
+  int a
+  float b
+  public string c
+  def auto sum():
+    return a + b
+```
+
+members, `a`, `b`, `sum` will be private. `c` will be public.
+
+If you want, you can use line continuation form together with `def:` still to
+achive block-level change:
+
+```d
+class A:
+  private \
+  def:
+    int a
+    float b
+    public string c
+  def auto sum():
+    return a + b
+```
+
+In this case, `a` and `b` will be private, but `sum` and `c` will be public
+(`sum` because this is a default visibility level, and `c` because it was
+explicitly set so more specifically).
+
 ### Multi-line array literls and expressions
 
 Arrays and associative arrays, unfortunately can't be formatted with alignment
