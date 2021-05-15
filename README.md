@@ -414,7 +414,8 @@ writeln(a + (c \
              + e))
 ```
 
-should work. Additionally, it is allowed to put comments between such lines:
+should work. Additionally, it is allowed to put line comments (block comments
+will lead to unintended results) between such lines:
 
 ```d
 auto x = a \
@@ -427,6 +428,18 @@ auto x = a \
 (this is somehow implicit - the semicolon will be inserted, but because it is in
 a comment, it will not be a problem).
 
+If you want to split a template or function signature declaration across multiple
+lines, use this trick:
+
+
+```d
+int f(int a, int b, \
+      int c, int d) \
+def:
+  return a + b + c + d
+```
+
+(`do` can also be used instead of `def`).
 
 ## Short term TODO
 

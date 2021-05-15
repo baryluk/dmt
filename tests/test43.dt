@@ -1,0 +1,9 @@
+int f(int a, int b, \
+      int c, int d) \
+def:
+  return a + b + c + d
+
+int main(string[] \
+           args) \
+do:
+  return f(1, 2, 3, -6)
