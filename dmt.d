@@ -64,7 +64,7 @@ import std.stdio;
  *
  *    strcmp_first2("abc3def", "abc") is false.
  */
-bool strcmp_first2(string big, string small)
+bool strcmp_first2(string big, string small) pure @nogc
 in {
 	assert(small.length > 0);
 }
